@@ -122,9 +122,88 @@ tr:hover td{background:#FAFAF7}
 .fb-log-line{color:#5DB84A}
 .fb-log-line.err{color:#E06060}
 .fb-log-line.info{color:#FAC775}
+
+/* ===== RESPONSIVE MOBILE ===== */
+.mob-bar{display:none;background:var(--dark);height:52px;padding:0 16px;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;z-index:200}
+.mob-logo{color:#fff;font-size:15px;font-weight:700;letter-spacing:-0.3px}
+.mob-logo span{color:var(--gold)}
+.mob-menu-btn{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:6px;line-height:1}
+.mob-nav-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300}
+.mob-nav-overlay.open{display:block}
+.sidebar-drawer{position:fixed;left:-220px;top:0;bottom:0;width:220px;background:var(--dark);z-index:400;transition:left .25s ease;overflow-y:auto;display:flex;flex-direction:column}
+.sidebar-drawer.open{left:0}
+
+@media(max-width:768px){
+  .mob-bar{display:flex}
+  .sidebar{display:none}
+  .shell{flex-direction:column;height:auto;min-height:100vh;overflow:visible}
+  .main{overflow:visible}
+  .content{overflow:visible;padding:14px 12px}
+  .kpi-grid{grid-template-columns:1fr 1fr;gap:10px}
+  .kpi-v{font-size:18px}
+  div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important}
+  .grid2{grid-template-columns:1fr}
+  table{font-size:11.5px}
+  th,td{padding:7px 8px}
+  .topbar{display:none}
+  .btn{font-size:12px;padding:6px 10px}
+  .btn-sm{font-size:11px;padding:3px 7px}
+  .modal{width:96vw;max-height:88vh}
+  .inv-parties{grid-template-columns:1fr}
+  .fb-step div[style*="grid-template-columns:repeat(3"]{grid-template-columns:1fr 1fr !important}
+  .content > div[style*="grid-template-columns:1fr 1fr"]{display:block !important}
+  .content > div[style*="grid-template-columns:1fr 1fr"] > *{margin-bottom:14px}
+}
+
+@media(max-width:400px){
+  .kpi-grid{grid-template-columns:1fr}
+  .kpi-v{font-size:20px}
+}
 </style>
 </head>
 <body>
+
+<!-- BARRE MOBILE -->
+<div class="mob-bar">
+  <div class="mob-logo">OPPIN<span>ERP</span></div>
+  <button class="mob-menu-btn" onclick="toggleMobNav()">☰</button>
+</div>
+
+<!-- OVERLAY + DRAWER MOBILE -->
+<div class="mob-nav-overlay" id="mob-overlay" onclick="toggleMobNav()"></div>
+<nav class="sidebar-drawer" id="mob-drawer">
+  <div class="logo-wrap" style="display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div class="logo-main">OPPIN<span>ERP</span></div>
+      <div class="logo-sub">OPPIN SARL — Abidjan, CI</div>
+    </div>
+    <button onclick="toggleMobNav()" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer">×</button>
+  </div>
+  <div class="nav-scroll">
+    <div class="nav-lbl">Tableau de bord</div>
+    <button class="nb active" onclick="go('dashboard',this);toggleMobNav()"><span class="ni">◉</span> Accueil</button>
+    <div class="nav-lbl">Ventes</div>
+    <button class="nb" onclick="go('devis',this);toggleMobNav()"><span class="ni">📋</span> Devis</button>
+    <button class="nb" onclick="go('commandes',this);toggleMobNav()"><span class="ni">🛒</span> Commandes</button>
+    <button class="nb" onclick="go('livraisons',this);toggleMobNav()"><span class="ni">🚚</span> Livraisons</button>
+    <button class="nb" onclick="go('factures',this);toggleMobNav()"><span class="ni">📄</span> Factures</button>
+    <div class="nav-lbl">Stock & Achats</div>
+    <button class="nb" onclick="go('stock',this);toggleMobNav()"><span class="ni">📦</span> Stock</button>
+    <button class="nb" onclick="go('fournisseurs',this);toggleMobNav()"><span class="ni">🏭</span> Fournisseurs</button>
+    <div class="nav-lbl">Clients & SAV</div>
+    <button class="nb" onclick="go('clients',this);toggleMobNav()"><span class="ni">👥</span> Clients</button>
+    <button class="nb" onclick="go('maintenance',this);toggleMobNav()"><span class="ni">🔧</span> Contrats SAV</button>
+    <div class="nav-lbl">Finance</div>
+    <button class="nb" onclick="go('tresorerie',this);toggleMobNav()"><span class="ni">💰</span> Trésorerie</button>
+    <div class="nav-lbl">Config</div>
+    <button class="nb" onclick="go('firebase',this);toggleMobNav()"><span class="ni">🔥</span> Firebase / Sync</button>
+  </div>
+  <div class="fbpill off" id="fbpill-mob">
+    <div class="fbd off"></div>
+    <span>Non connecté</span>
+  </div>
+</nav>
+
 <div class="shell">
 
 <nav class="sidebar">
@@ -280,7 +359,7 @@ tr:hover td{background:#FAFAF7}
               <div class="inv-meta"><strong>FACTURE N° F-2026-047</strong><div>Date : 04/04/2026</div><div>Échéance : 07/04/2026</div><div style="margin-top:7px"><span class="badge bg">Payée</span></div></div>
             </div>
             <div class="inv-parties">
-              <div><div class="inv-pl">Émetteur</div><div class="inv-pn">OPPIN SARL — INOVON</div><div class="inv-pi">Abidjan, Côte d'Ivoire<br>contact@oppin-ci.com</div></div>
+              <div><div class="inv-pl">Émetteur</div><div class="inv-pn">OPPIN SARL — INOVON</div><div class="inv-pi">Abidjan, Côte d'Ivoire<br><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="99faf6f7edf8faedd9f6e9e9f0f7b4faf0b7faf6f4">[email&#160;protected]</a></div></div>
               <div><div class="inv-pl">Client</div><div class="inv-pn">Résidence Les Bois</div><div class="inv-pi">Riviera, Abidjan<br>+225 07 XX XX XX XX</div></div>
             </div>
             <table class="inv-tbl">
@@ -529,7 +608,7 @@ service cloud.firestore {
 <div id="toast"></div>
 
 <!-- Firebase SDK -->
-<script type="module">
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, doc, setDoc, collection, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -673,6 +752,13 @@ function toast(msg,bg){
   t.textContent=msg;t.style.background=bg||'#111';t.style.display='block';
   clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.style.display='none',3500);
 }
+
+function toggleMobNav(){
+  var drawer=document.getElementById('mob-drawer');
+  var overlay=document.getElementById('mob-overlay');
+  drawer.classList.toggle('open');
+  overlay.classList.toggle('open');
+}
 function fbLog(msg,type){
   var log=document.getElementById('fb-log');
   var d=document.createElement('div');d.className='fb-log-line '+(type==='err'?'err':type==='info'?'info':'');
@@ -774,11 +860,4 @@ function exportPDF(type,ref,client){
   }
   doc.setFontSize(7.5);doc.setTextColor(...GRAY);
   doc.text('OPPIN ERP v3 — '+new Date().toLocaleString('fr-FR'),W/2,290,{align:'center'});
-  var fname=lbl.toLowerCase().replace(/ /g,'-')+'-'+ref.replace(/[^a-zA-Z0-9]/g,'')+'.pdf';
-  doc.save(fname);
-  toast('✅ PDF : '+fname,'#3B6D11');
-  if(window._fbReady) setTimeout(()=>toast('🔥 Archive sur Firestore oppin-erp','#FF6F00'),1200);
-}
-</script>
-</body>
-</html>
+  var fname=lbl.toLowerCase().replace(/ /g,'-')
