@@ -160,6 +160,22 @@ tr:hover td{background:#FAFAF7}
   .kpi-v{font-size:20px}
 }
 </style>
+<script>
+function toggleMobNav(){
+  var d=document.getElementById('mob-drawer');
+  var o=document.getElementById('mob-overlay');
+  if(!d||!o)return;
+  if(d.classList.contains('open')){
+    d.classList.remove('open');
+    o.classList.remove('open');
+    document.body.style.overflow='';
+  }else{
+    d.classList.add('open');
+    o.classList.add('open');
+    document.body.style.overflow='hidden';
+  }
+}
+</script>
 </head>
 <body>
 
@@ -608,7 +624,7 @@ service cloud.firestore {
 <div id="toast"></div>
 
 <!-- Firebase SDK -->
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script type="module">
+<script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, doc, setDoc, collection, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
