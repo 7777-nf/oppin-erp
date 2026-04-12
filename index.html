@@ -175,6 +175,63 @@ function toggleMobNav(){
     document.body.style.overflow='hidden';
   }
 }
+function go(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  var el=document.getElementById('page-'+id);if(el)el.classList.add('active');
+  if(btn){btn.classList.add('active');return;}
+  document.querySelectorAll('.nb').forEach(b=>{if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+id+"'"))b.classList.add('active');});
+}
+function openModal(id){document.getElementById(id).classList.add('active');}
+function closeModal(id){document.getElementById(id).classList.remove('active');}
+var toastTimer;
+function toast(msg,bg){
+  var t=document.getElementById('toast');
+  if(!t)return;
+  t.textContent=msg;t.style.background=bg||'#111';t.style.display='block';
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.style.display='none',3500);
+}
+function fbLog(msg,type){
+  var log=document.getElementById('fb-log');
+  if(!log)return;
+  var d=document.createElement('div');d.className='fb-log-line '+(type==='err'?'err':type==='info'?'info':'');
+  d.textContent='['+new Date().toLocaleTimeString('fr-FR')+'] '+msg;
+  log.appendChild(d);log.scrollTop=log.scrollHeight;
+}
+function stab(btn,paneId){
+  btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  btn.closest('.card').querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  var pane=document.getElementById(paneId);if(pane)pane.classList.add('active');
+}
+function calcDv(){
+  var total=0;
+  document.querySelectorAll('#dv-lines .dv-line').forEach(function(row){
+    var q=parseFloat(row.querySelector('.qty').value)||0;
+    var p=parseFloat(row.querySelector('.pu').value)||0;
+    total+=q*p;
+  });
+  var tva=Math.round(total*0.18),ttc=total+tva;
+  var f=function(n){return n.toLocaleString('fr-FR')+' FCFA';};
+  document.getElementById('dv-ht').textContent=f(total);
+  document.getElementById('dv-tva').textContent=f(tva);
+  document.getElementById('dv-ttc').textContent=f(ttc);
+}
+function addDvLine(){
+  var c=document.getElementById('dv-lines');
+  var d=document.createElement('div');d.className='dv-line';
+  d.innerHTML='<select><option>DS-2CD2143G2-I — Caméra dôme 4MP</option><option>DS-7208HUHI-K2 — DVR 8 voies</option><option>Câble coaxial RG6</option><option>Main d\'œuvre installation</option><option>Contrat maintenance Essentielle</option></select><input class="qty" type="number" placeholder="Qté" value="1" oninput="calcDv()"><input class="pu" type="number" placeholder="PU HT" value="0" oninput="calcDv()"><button class="btn btn-sm btn-danger" onclick="this.closest(\'.dv-line\').remove();calcDv()">−</button>';
+  c.appendChild(d);
+}
+function saveDv(){closeModal('m-devis');toast('✅ Devis enregistré','#3B6D11');}
+
+// Wrappers Firebase — disponibles globalement
+function initFirebase(){ if(window._initFirebase) window._initFirebase(); else toast('⏳ Firebase en cours...','#FF6F00'); }
+function fbSave(c,i,d){ if(window._fbSave) window._fbSave(c,i,d); else toast('⚠ Firebase non connecté','#A32D2D'); }
+function fbSyncAll(){ if(window._fbSyncAll) window._fbSyncAll(); else toast('⚠ Firebase non connecté','#A32D2D'); }
+function fbSyncCollection(c){ if(window._fbSyncCollection) window._fbSyncCollection(c); else toast('⚠ Firebase non connecté','#A32D2D'); }
+function saveFactureFirebase(){ if(window._saveFactureFirebase) window._saveFactureFirebase(); else toast('⚠ Firebase non connecté','#A32D2D'); }
+function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); else toast('⚠ Firebase non connecté','#A32D2D'); }
 </script>
 </head>
 <body>
@@ -639,7 +696,7 @@ service cloud.firestore {
 
   let app, db;
 
-  window.initFirebase = async function() {
+  window._initFirebase = window.initFirebase = async function() {
     try {
       fbLog('Initialisation Firebase...', 'info');
       app = initializeApp(firebaseConfig);
@@ -671,7 +728,7 @@ service cloud.firestore {
     }
   };
 
-  window.fbSave = async function(collectionName, docId, data) {
+  window._fbSave = window.fbSave = async function(collectionName, docId, data) {
     if (!window._fbReady) { toast('⚠ Connecter Firebase d\'abord', '#A32D2D'); return; }
     try {
       fbLog('Sauvegarde → ' + collectionName + '/' + docId + '...', 'info');
@@ -687,7 +744,7 @@ service cloud.firestore {
     }
   };
 
-  window.fbSyncAll = async function() {
+  window._fbSyncAll = window.fbSyncAll = async function() {
     if (!window._fbReady) { toast('⚠ Connecter Firebase d\'abord → menu Firebase/Sync', '#A32D2D'); return; }
     fbLog('--- Sync complète OPPIN ERP ---', 'info');
     const batch = [
@@ -714,14 +771,14 @@ service cloud.firestore {
     toast('✅ Tout synchronisé sur Firebase !', '#3B6D11');
   };
 
-  window.fbSyncCollection = async function(col) {
+  window._fbSyncCollection = window.fbSyncCollection = async function(col) {
     if (!window._fbReady) { toast('⚠ Connecter Firebase d\'abord', '#A32D2D'); return; }
     fbLog('Sync collection : ' + col, 'info');
     toast('🔥 Sync ' + col + ' en cours...', '#FF6F00');
     setTimeout(() => { fbLog('✅ Collection ' + col + ' synchronisée', 'ok'); toast('✅ ' + col + ' synchronisé', '#3B6D11'); }, 1200);
   };
 
-  window.saveFactureFirebase = async function() {
+  window._saveFactureFirebase = window.saveFactureFirebase = async function() {
     closeModal('m-facture');
     const client = document.getElementById('fact-client').value;
     const moyen = document.getElementById('fact-moyen').value;
@@ -730,7 +787,7 @@ service cloud.firestore {
     await window.fbSave('factures', ref, {client, moyen, statut:'brouillon', createdAt: new Date().toISOString()});
   };
 
-  window.saveDvFirebase = async function() {
+  window._saveDvFirebase = window.saveDvFirebase = async function() {
     closeModal('m-devis');
     const client = document.getElementById('dv-client').value;
     const objet = document.getElementById('dv-objet').value;
@@ -738,78 +795,19 @@ service cloud.firestore {
     const ref = 'D-2026-' + Date.now().toString().slice(-3);
     await window.fbSave('devis', ref, {client, objet, statut:'brouillon', createdAt: new Date().toISOString()});
   };
+
+  // ✅ Connexion automatique au chargement
+  setTimeout(() => { window.initFirebase(); }, 1000);
 </script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
-function toggleMobNav(){
-  var drawer=document.getElementById('mob-drawer');
-  var overlay=document.getElementById('mob-overlay');
-  if(!drawer||!overlay)return;
-  var isOpen=drawer.classList.contains('open');
-  if(isOpen){
-    drawer.classList.remove('open');
-    overlay.classList.remove('open');
-    document.body.style.overflow='';
-  }else{
-    drawer.classList.add('open');
-    overlay.classList.add('open');
-    document.body.style.overflow='hidden';
-  }
-}
-
-var toastTimer;
-
 // Date
-document.getElementById('dash-date').textContent = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-
-function go(id,btn){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
-  var el=document.getElementById('page-'+id);if(el)el.classList.add('active');
-  if(btn){btn.classList.add('active');return;}
-  document.querySelectorAll('.nb').forEach(b=>{if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+id+"'"))b.classList.add('active');});
-}
-function openModal(id){document.getElementById(id).classList.add('active');}
-function closeModal(id){document.getElementById(id).classList.remove('active');}
-document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',function(e){if(e.target===this)this.classList.remove('active');}));
-function stab(btn,paneId){
-  btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  btn.classList.add('active');
-  btn.closest('.card').querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
-  var pane=document.getElementById(paneId);if(pane)pane.classList.add('active');
-}
-function toast(msg,bg){
-  var t=document.getElementById('toast');
-  t.textContent=msg;t.style.background=bg||'#111';t.style.display='block';
-  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.style.display='none',3500);
-}
-function fbLog(msg,type){
-  var log=document.getElementById('fb-log');
-  var d=document.createElement('div');d.className='fb-log-line '+(type==='err'?'err':type==='info'?'info':'');
-  d.textContent='['+new Date().toLocaleTimeString('fr-FR')+'] '+msg;
-  log.appendChild(d);log.scrollTop=log.scrollHeight;
-}
-function calcDv(){
-  var total=0;
-  document.querySelectorAll('#dv-lines .dv-line').forEach(function(row){
-    var q=parseFloat(row.querySelector('.qty').value)||0;
-    var p=parseFloat(row.querySelector('.pu').value)||0;
-    total+=q*p;
-  });
-  var tva=Math.round(total*0.18),ttc=total+tva;
-  var f=function(n){return n.toLocaleString('fr-FR')+' FCFA';};
-  document.getElementById('dv-ht').textContent=f(total);
-  document.getElementById('dv-tva').textContent=f(tva);
-  document.getElementById('dv-ttc').textContent=f(ttc);
-}
-function addDvLine(){
-  var c=document.getElementById('dv-lines');
-  var d=document.createElement('div');d.className='dv-line';
-  d.innerHTML='<select><option>DS-2CD2143G2-I — Caméra dôme 4MP</option><option>DS-7208HUHI-K2 — DVR 8 voies</option><option>Câble coaxial RG6</option><option>Main d\'œuvre installation</option><option>Contrat maintenance Essentielle</option></select><input class="qty" type="number" placeholder="Qté" value="1" oninput="calcDv()"><input class="pu" type="number" placeholder="PU HT" value="0" oninput="calcDv()"><button class="btn btn-sm btn-danger" onclick="this.closest(\'.dv-line\').remove();calcDv()">−</button>';
-  c.appendChild(d);
-}
-function saveDv(){closeModal('m-devis');toast('✅ Devis enregistré','#3B6D11');}
+document.addEventListener('DOMContentLoaded', function(){
+  var el = document.getElementById('dash-date');
+  if(el) el.textContent = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',function(e){if(e.target===this)this.classList.remove('active');}));
+});
 
 function exportPDF(type,ref,client){
   var JPDF=window.jspdf?window.jspdf.jsPDF:(typeof jsPDF!=='undefined'?jsPDF:null);
