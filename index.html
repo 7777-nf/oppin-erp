@@ -123,7 +123,22 @@ tr:hover td{background:#FAFAF7}
 .fb-log-line.err{color:#E06060}
 .fb-log-line.info{color:#FAC775}
 
-/* ===== RESPONSIVE MOBILE ===== */
+/* ===== LOGIN ===== */
+#login-screen{position:fixed;inset:0;background:var(--dark);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px}
+#login-screen.hidden{display:none}
+.login-box{background:#1a1a1a;border:1px solid #333;border-radius:16px;padding:36px 32px;width:100%;max-width:380px}
+.login-logo{font-size:24px;font-weight:700;color:#fff;margin-bottom:4px}
+.login-logo span{color:var(--gold)}
+.login-sub{font-size:12px;color:rgba(255,255,255,.3);margin-bottom:28px}
+.login-label{font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:block}
+.login-input{width:100%;background:#111;border:1px solid #333;color:#fff;padding:11px 14px;border-radius:8px;font-size:14px;font-family:inherit;margin-bottom:14px;outline:none;transition:border-color .2s}
+.login-input:focus{border-color:var(--gold)}
+.login-btn{width:100%;background:var(--gold);color:#111;border:none;padding:12px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px;transition:opacity .2s}
+.login-btn:hover{opacity:.88}
+.login-btn:disabled{opacity:.5;cursor:not-allowed}
+.login-error{background:rgba(163,45,45,.2);border:1px solid #A32D2D;color:#ff6b6b;padding:10px 14px;border-radius:8px;font-size:12.5px;margin-bottom:14px;display:none}
+.login-loading{text-align:center;color:rgba(255,255,255,.4);font-size:13px;margin-top:12px;display:none}
+
 .mob-bar{display:none;background:var(--dark);height:52px;padding:0 16px;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;z-index:200}
 .mob-logo{color:#fff;font-size:15px;font-weight:700;letter-spacing:-0.3px}
 .mob-logo span{color:var(--gold)}
@@ -227,7 +242,32 @@ function addDvLine(){
 }
 function saveDv(){closeModal('m-devis');toast('✅ Devis enregistré','#3B6D11');}
 
-// Wrappers Firebase — disponibles globalement
+// Auth
+async function seConnecter(){
+  var email = document.getElementById('login-email').value.trim();
+  var pwd = document.getElementById('login-pwd').value;
+  var err = document.getElementById('login-error');
+  var btn = document.getElementById('login-btn');
+  var loading = document.getElementById('login-loading');
+  if(!email||!pwd){err.textContent='Remplis tous les champs.';err.style.display='block';return;}
+  err.style.display='none';
+  btn.disabled=true;
+  loading.style.display='block';
+  try {
+    await window._seConnecter(email, pwd);
+  } catch(e) {
+    err.textContent = e.message;
+    err.style.display = 'block';
+    btn.disabled = false;
+    loading.style.display = 'none';
+  }
+}
+
+function seDeconnecter(){
+  if(confirm('Se déconnecter ?')){
+    if(window._seDeconnecter) window._seDeconnecter();
+  }
+}
 function initFirebase(){ if(window._initFirebase) window._initFirebase(); else toast('⏳ Firebase en cours...','#FF6F00'); }
 function fbSave(c,i,d){ if(window._fbSave) window._fbSave(c,i,d); else toast('⚠ Firebase non connecté','#A32D2D'); }
 function fbSyncAll(){ if(window._fbSyncAll) window._fbSyncAll(); else toast('⚠ Firebase non connecté','#A32D2D'); }
@@ -237,6 +277,21 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
 </script>
 </head>
 <body>
+
+<!-- ECRAN DE LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">OPPIN<span>ERP</span></div>
+    <div class="login-sub">OPPIN SARL — Abidjan, Côte d'Ivoire</div>
+    <div class="login-error" id="login-error">Email ou mot de passe incorrect.</div>
+    <label class="login-label">Email</label>
+    <input class="login-input" type="email" id="login-email" placeholder="votre@email.com" autocomplete="email">
+    <label class="login-label">Mot de passe</label>
+    <input class="login-input" type="password" id="login-pwd" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')seConnecter()">
+    <button class="login-btn" id="login-btn" onclick="seConnecter()">Se connecter</button>
+    <div class="login-loading" id="login-loading">Connexion en cours...</div>
+  </div>
+</div>
 
 <!-- BARRE MOBILE -->
 <div class="mob-bar">
@@ -273,6 +328,7 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
     <button class="nb" onclick="go('tresorerie',this);toggleMobNav()"><span class="ni">💰</span> Trésorerie</button>
     <div class="nav-lbl">Config</div>
     <button class="nb" onclick="go('firebase',this);toggleMobNav()"><span class="ni">🔥</span> Firebase / Sync</button>
+    <button class="nb" onclick="seDeconnecter()" style="color:#E06060"><span class="ni">🚪</span> Se déconnecter</button>
   </div>
   <div class="fbpill off" id="fbpill-mob">
     <div class="fbd off"></div>
@@ -306,6 +362,7 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
     <button class="nb" onclick="go('tresorerie',this)"><span class="ni">💰</span> Trésorerie</button>
     <div class="nav-lbl">Config</div>
     <button class="nb" id="nav-firebase" onclick="go('firebase',this)"><span class="ni">🔥</span> Firebase / Sync</button>
+    <button class="nb" onclick="seDeconnecter()" style="color:#E06060;margin-top:4px"><span class="ni">🚪</span> Se déconnecter</button>
   </div>
   <div class="fbpill off" id="fbpill" onclick="go('firebase',document.getElementById('nav-firebase'))">
     <div class="fbd off" id="fbd"></div>
@@ -791,6 +848,7 @@ service cloud.firestore {
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, doc, setDoc, collection, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBvIVa6atJlXUhBAA17YpG5wrf4xI7rGRQ",
@@ -801,13 +859,15 @@ service cloud.firestore {
     appId: "1:435262840902:web:3e339fdbdd71170c25aa47"
   };
 
-  let app, db;
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
 
-  window._initFirebase = window.initFirebase = async function() {
-    try {
-      fbLog('Initialisation Firebase...', 'info');
-      app = initializeApp(firebaseConfig);
-      db = getFirestore(app);
+  // Surveille l'état de connexion
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      // Connecté — cache le login, montre l'ERP
+      document.getElementById('login-screen').classList.add('hidden');
       window._db = db;
       window._setDoc = setDoc;
       window._doc = doc;
@@ -815,24 +875,43 @@ service cloud.firestore {
       window._collection = collection;
       window._getDocs = getDocs;
       window._fbReady = true;
-
-      // Update UI
-      document.getElementById('fbd').className = 'fbd on';
-      document.getElementById('fbpill').className = 'fbpill on';
-      document.getElementById('fbtxt').textContent = 'Firebase connecté';
-      document.getElementById('btn-fb-connect').textContent = '✅ Connecté';
-      document.getElementById('btn-fb-connect').style.cssText = 'background:#3B6D11;border-color:#3B6D11;color:#fff;padding:7px 14px;border-radius:6px;font-size:12.5px;cursor:pointer;font-family:inherit';
-      document.getElementById('fb-connected-box').style.display = 'block';
-      document.getElementById('fb-live-badge').style.cssText = 'font-size:10px;padding:2px 7px;border-radius:20px;background:#EAF3DE;color:#3B6D11';
-      document.getElementById('fb-live-badge').textContent = '🔥 Firebase live';
-
-      fbLog('✅ Firebase connecté — projet : oppin-erp', 'ok');
-      fbLog('✅ Firestore prêt — europe-west1', 'ok');
-      toast('✅ Firebase oppin-erp connecté !', '#3B6D11');
-    } catch(e) {
-      fbLog('❌ Erreur : ' + e.message, 'err');
-      toast('❌ Erreur Firebase : ' + e.message, '#A32D2D');
+      // Met à jour UI Firebase
+      var fbd = document.getElementById('fbd');
+      var fbpill = document.getElementById('fbpill');
+      var fbtxt = document.getElementById('fbtxt');
+      var badge = document.getElementById('fb-live-badge');
+      var box = document.getElementById('fb-connected-box');
+      if(fbd) fbd.className = 'fbd on';
+      if(fbpill) fbpill.className = 'fbpill on';
+      if(fbtxt) fbtxt.textContent = 'Connecté — ' + user.email;
+      if(badge){ badge.style.cssText='font-size:10px;padding:2px 7px;border-radius:20px;background:#EAF3DE;color:#3B6D11'; badge.textContent='🔥 Firebase live'; }
+      if(box) box.style.display = 'block';
+    } else {
+      // Non connecté — montre l'écran de login
+      document.getElementById('login-screen').classList.remove('hidden');
     }
+  });
+
+  // Connexion
+  window._seConnecter = async function(email, pwd) {
+    try {
+      await signInWithEmailAndPassword(auth, email, pwd);
+    } catch(e) {
+      var msg = 'Email ou mot de passe incorrect.';
+      if(e.code === 'auth/too-many-requests') msg = 'Trop de tentatives. Réessaie dans quelques minutes.';
+      if(e.code === 'auth/network-request-failed') msg = 'Problème réseau. Vérifie ta connexion.';
+      throw new Error(msg);
+    }
+  };
+
+  // Déconnexion
+  window._seDeconnecter = async function() {
+    await signOut(auth);
+  };
+
+  // Ancienne fonction Firebase (sans auth — garde compatibilité)
+  window._initFirebase = window.initFirebase = async function() {
+    toast('✅ Firebase déjà connecté via Auth', '#3B6D11');
   };
 
   window._fbSave = window.fbSave = async function(collectionName, docId, data) {
@@ -903,8 +982,7 @@ service cloud.firestore {
     await window.fbSave('devis', ref, {client, objet, statut:'brouillon', createdAt: new Date().toISOString()});
   };
 
-  // ✅ Connexion automatique au chargement
-  setTimeout(() => { window.initFirebase(); }, 1000);
+  // Connexion automatique gérée par onAuthStateChanged
 </script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
