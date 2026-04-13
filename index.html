@@ -705,49 +705,57 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
     </div>
     <div class="card">
       <div class="tabs">
-        <button class="tab active" onclick="stab(this,'stock-tab-actuel')">📦 Stock actuel</button>
+        <button class="tab active" onclick="stab(this,'stock-tab-actuel');loadStockActuel()">📦 Stock actuel</button>
         <button class="tab" onclick="stab(this,'stock-tab-sorties');loadHistoriqueSorties()">📋 Historique des sorties</button>
       </div>
 
       <!-- STOCK ACTUEL -->
       <div id="stock-tab-actuel" class="tab-pane active">
-        <table><thead><tr><th>Référence</th><th>Désignation</th><th>Qté</th><th>Seuil</th><th>Niveau</th><th>PU achat</th><th>PU vente</th><th>Marge</th><th>Sync</th></tr></thead>
-        <tbody>
-          <tr>
-            <td><span class="mono">DS-2CE16D0T-BULLET</span></td>
-            <td>Caméra bullet Hikvision</td>
-            <td><b>5</b></td>
-            <td>3</td>
-            <td><div class="sbar-wrap"><div class="sbar sbar-ok" style="width:70%"></div></div></td>
-            <td class="mono">6 500</td>
-            <td class="mono">25 000</td>
-            <td><span class="badge bg">+285%</span></td>
-            <td><button class="btn btn-sm btn-fb" onclick="fbSave('stock','DS-2CE16D0T-BULLET',{quantite:5,seuilAlerte:3,puAchat:6500,puVente:25000,designation:'Caméra bullet Hikvision'})">🔥</button></td>
-          </tr>
-          <tr>
-            <td><span class="mono">DS-2CE76D0T-DOME</span></td>
-            <td>Caméra dôme Hikvision</td>
-            <td><b>2</b></td>
-            <td>3</td>
-            <td><div class="sbar-wrap"><div class="sbar sbar-low" style="width:30%"></div></div></td>
-            <td class="mono">6 500</td>
-            <td class="mono">25 000</td>
-            <td><span class="badge bg">+285%</span></td>
-            <td><button class="btn btn-sm btn-fb" onclick="fbSave('stock','DS-2CE76D0T-DOME',{quantite:2,seuilAlerte:3,puAchat:6500,puVente:25000,designation:'Caméra dôme Hikvision'})">🔥</button></td>
-          </tr>
-          <tr>
-            <td><span class="mono">DS-7204-4CH</span></td>
-            <td>DVR 4 canaux Hikvision</td>
-            <td><b>1</b></td>
-            <td>2</td>
-            <td><div class="sbar-wrap"><div class="sbar sbar-low" style="width:15%"></div></div></td>
-            <td class="mono">21 000</td>
-            <td class="mono">40 000</td>
-            <td><span class="badge bg">+90%</span></td>
-            <td><button class="btn btn-sm btn-fb" onclick="fbSave('stock','DS-7204-4CH',{quantite:1,seuilAlerte:2,puAchat:21000,puVente:40000,designation:'DVR 4 canaux Hikvision'})">🔥</button></td>
-          </tr>
-        </tbody></table>
-        <div class="info-box yellow" style="margin:14px 14px 14px">
+        <div id="stock-actuel-loading" style="padding:30px;text-align:center;color:var(--text2);font-size:12.5px;display:none">
+          <div style="font-size:22px;margin-bottom:8px">⏳</div>Chargement depuis Firebase…
+        </div>
+        <div id="stock-actuel-error" style="padding:14px;display:none">
+          <div class="info-box red" id="stock-actuel-error-msg"></div>
+        </div>
+        <table id="stock-actuel-table">
+          <thead><tr><th>Référence</th><th>Désignation</th><th>Qté</th><th>Seuil</th><th>Niveau</th><th>PU achat</th><th>PU vente</th><th>Marge</th><th>Sync</th></tr></thead>
+          <tbody id="stock-actuel-tbody">
+            <tr>
+              <td><span class="mono">DS-2CE16D0T-BULLET</span></td>
+              <td>Caméra bullet Hikvision</td>
+              <td><b id="qte-DS-2CE16D0T-BULLET">5</b></td>
+              <td id="seuil-DS-2CE16D0T-BULLET">3</td>
+              <td><div class="sbar-wrap"><div class="sbar sbar-ok" id="sbar-DS-2CE16D0T-BULLET" style="width:70%"></div></div></td>
+              <td class="mono" id="puA-DS-2CE16D0T-BULLET">6 500</td>
+              <td class="mono" id="puV-DS-2CE16D0T-BULLET">25 000</td>
+              <td id="marge-DS-2CE16D0T-BULLET"><span class="badge bg">+285%</span></td>
+              <td><button class="btn btn-sm btn-fb" id="sync-DS-2CE16D0T-BULLET" onclick="fbSave('stock','DS-2CE16D0T-BULLET',{quantite:5,seuilAlerte:3,puAchat:6500,puVente:25000,designation:'Caméra bullet Hikvision'})">🔥</button></td>
+            </tr>
+            <tr>
+              <td><span class="mono">DS-2CE76D0T-DOME</span></td>
+              <td>Caméra dôme Hikvision</td>
+              <td><b id="qte-DS-2CE76D0T-DOME">2</b></td>
+              <td id="seuil-DS-2CE76D0T-DOME">3</td>
+              <td><div class="sbar-wrap"><div class="sbar sbar-low" id="sbar-DS-2CE76D0T-DOME" style="width:30%"></div></div></td>
+              <td class="mono" id="puA-DS-2CE76D0T-DOME">6 500</td>
+              <td class="mono" id="puV-DS-2CE76D0T-DOME">25 000</td>
+              <td id="marge-DS-2CE76D0T-DOME"><span class="badge bg">+285%</span></td>
+              <td><button class="btn btn-sm btn-fb" id="sync-DS-2CE76D0T-DOME" onclick="fbSave('stock','DS-2CE76D0T-DOME',{quantite:2,seuilAlerte:3,puAchat:6500,puVente:25000,designation:'Caméra dôme Hikvision'})">🔥</button></td>
+            </tr>
+            <tr>
+              <td><span class="mono">DS-7204-4CH</span></td>
+              <td>DVR 4 canaux Hikvision</td>
+              <td><b id="qte-DS-7204-4CH">1</b></td>
+              <td id="seuil-DS-7204-4CH">2</td>
+              <td><div class="sbar-wrap"><div class="sbar sbar-low" id="sbar-DS-7204-4CH" style="width:15%"></div></div></td>
+              <td class="mono" id="puA-DS-7204-4CH">21 000</td>
+              <td class="mono" id="puV-DS-7204-4CH">40 000</td>
+              <td id="marge-DS-7204-4CH"><span class="badge bg">+90%</span></td>
+              <td><button class="btn btn-sm btn-fb" id="sync-DS-7204-4CH" onclick="fbSave('stock','DS-7204-4CH',{quantite:1,seuilAlerte:2,puAchat:21000,puVente:40000,designation:'DVR 4 canaux Hikvision'})">🔥</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="info-box yellow" id="stock-alerte-box" style="margin:14px 14px 14px">
           ⚠ <strong>Stock au 9 avril 2026</strong> — 2 produits sous le seuil d'alerte (Dôme : 2 unités, DVR : 1 unité). Penser à commander.
         </div>
       </div>
@@ -1337,6 +1345,8 @@ service cloud.firestore {
       if(fbtxt) fbtxt.textContent = 'Connecté — ' + user.email;
       if(badge){ badge.style.cssText='font-size:10px;padding:2px 7px;border-radius:20px;background:#EAF3DE;color:#3B6D11'; badge.textContent='🔥 Firebase live'; }
       if(box) box.style.display = 'block';
+      // Charge automatiquement le stock réel depuis Firebase
+      setTimeout(loadStockActuel, 300);
     } else {
       // Non connecté — montre l'écran de login
       document.getElementById('login-screen').classList.remove('hidden');
@@ -1615,7 +1625,118 @@ var _goOriginal = go;
 go = function(id, btn) {
   _goOriginal(id, btn);
   if(id === 'crm') setTimeout(renderCRM, 50);
+  if(id === 'stock') setTimeout(loadStockActuel, 50);
 };
+
+// ── STOCK ACTUEL DEPUIS FIREBASE ─────────────────────────────────────────────
+function loadStockActuel(){
+  if(!window._db) return; // pas encore connecté, les valeurs statiques restent
+  document.getElementById('stock-actuel-loading').style.display='block';
+  document.getElementById('stock-actuel-error').style.display='none';
+
+  var col = window._collection(window._db, 'stock');
+  window._getDocs(col).then(function(snap){
+    document.getElementById('stock-actuel-loading').style.display='none';
+    if(snap.empty) return; // rien dans Firebase, garde les valeurs statiques
+
+    var alertes = 0;
+    var alertesMsgs = [];
+    var valeurTotale = 0;
+
+    snap.forEach(function(docSnap){
+      var ref = docSnap.id;
+      var d = docSnap.data();
+      var qte = d.quantite !== undefined ? d.quantite : d.quantite;
+      var seuil = d.seuilAlerte || 0;
+      var puAchat = d.puAchat || 0;
+      var puVente = d.puVente || 0;
+
+      // Met à jour la quantité dans le tableau
+      var qteEl = document.getElementById('qte-'+ref);
+      var seuilEl = document.getElementById('seuil-'+ref);
+      var sbarEl = document.getElementById('sbar-'+ref);
+      var margeEl = document.getElementById('marge-'+ref);
+      var syncBtn = document.getElementById('sync-'+ref);
+      var puAEl = document.getElementById('puA-'+ref);
+      var puVEl = document.getElementById('puV-'+ref);
+
+      if(qteEl){
+        qteEl.textContent = qte;
+        // Couleur selon seuil
+        if(qte === 0){
+          qteEl.style.color = 'var(--red)';
+          qteEl.style.fontWeight = '700';
+        } else if(qte <= seuil){
+          qteEl.style.color = 'var(--red)';
+        } else {
+          qteEl.style.color = 'var(--green)';
+        }
+      }
+      if(seuilEl) seuilEl.textContent = seuil;
+      if(puAEl && puAchat) puAEl.textContent = puAchat.toLocaleString('fr-FR');
+      if(puVEl && puVente) puVEl.textContent = puVente.toLocaleString('fr-FR');
+
+      // Barre de niveau
+      if(sbarEl && seuil > 0){
+        var pct = Math.min(100, Math.round((qte / (seuil * 2)) * 100));
+        sbarEl.style.width = pct + '%';
+        if(qte <= seuil){
+          sbarEl.className = 'sbar sbar-low';
+        } else {
+          sbarEl.className = 'sbar sbar-ok';
+        }
+      }
+
+      // Marge
+      if(margeEl && puAchat > 0 && puVente > 0){
+        var marge = Math.round(((puVente - puAchat) / puAchat) * 100);
+        margeEl.innerHTML = '<span class="badge bg">+'+marge+'%</span>';
+      }
+
+      // Bouton sync mis à jour avec vraies valeurs
+      if(syncBtn){
+        var des = d.designation || ref;
+        syncBtn.onclick = function(){
+          fbSave('stock', ref, {quantite:qte, seuilAlerte:seuil, puAchat:puAchat, puVente:puVente, designation:des});
+        };
+      }
+
+      // Comptage alertes
+      if(qte <= seuil){
+        alertes++;
+        alertesMsgs.push((d.designation||ref)+' : '+qte+' unité'+(qte>1?'s':''));
+      }
+
+      // Valeur stock
+      valeurTotale += (qte * puAchat);
+    });
+
+    // Met à jour KPIs
+    var alerteKpi = document.getElementById('stock-alertes');
+    if(alerteKpi) alerteKpi.textContent = alertes;
+
+    // Met à jour la valeur stock
+    var valEl = document.querySelector('#page-stock .kpi:nth-child(3) .kpi-v');
+    if(valEl) valEl.textContent = valeurTotale.toLocaleString('fr-FR');
+
+    // Met à jour le bandeau alerte
+    var boite = document.getElementById('stock-alerte-box');
+    if(boite){
+      if(alertes === 0){
+        boite.style.display = 'none';
+      } else {
+        boite.style.display = 'block';
+        boite.innerHTML = '⚠ <strong>Stock mis à jour</strong> — '+alertes+' produit'+(alertes>1?'s':'')+' sous le seuil : '+alertesMsgs.join(', ')+'. Penser à commander.';
+      }
+    }
+
+    toast('✅ Stock chargé depuis Firebase', '#3B6D11');
+  }).catch(function(err){
+    document.getElementById('stock-actuel-loading').style.display='none';
+    document.getElementById('stock-actuel-error-msg').textContent = '❌ Erreur chargement stock : '+err.message;
+    document.getElementById('stock-actuel-error').style.display='block';
+  });
+}
 
 // ── HISTORIQUE SORTIES STOCK ──────────────────────────────────────────────────
 var _sortiesCache = [];
