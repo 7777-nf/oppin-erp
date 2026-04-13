@@ -265,6 +265,7 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
     <button class="nb" onclick="go('fournisseurs',this);toggleMobNav()"><span class="ni">🏭</span> Fournisseurs</button>
     <div class="nav-lbl">Clients & SAV</div>
     <button class="nb" onclick="go('clients',this);toggleMobNav()"><span class="ni">👥</span> Clients</button>
+    <button class="nb" onclick="go('crm',this);toggleMobNav()"><span class="ni">🎯</span> CRM / Prospects</button>
     <button class="nb" onclick="go('maintenance',this);toggleMobNav()"><span class="ni">🔧</span> Contrats SAV</button>
     <div class="nav-lbl">Finance</div>
     <button class="nb" onclick="go('tresorerie',this);toggleMobNav()"><span class="ni">💰</span> Trésorerie</button>
@@ -297,6 +298,7 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
     <button class="nb" onclick="go('fournisseurs',this)"><span class="ni">🏭</span> Fournisseurs</button>
     <div class="nav-lbl">Clients & SAV</div>
     <button class="nb" onclick="go('clients',this)"><span class="ni">👥</span> Clients</button>
+    <button class="nb" onclick="go('crm',this)"><span class="ni">🎯</span> CRM / Prospects</button>
     <button class="nb" onclick="go('maintenance',this)"><span class="ni">🔧</span> Contrats SAV</button>
     <div class="nav-lbl">Finance</div>
     <button class="nb" onclick="go('tresorerie',this)"><span class="ni">💰</span> Trésorerie</button>
@@ -552,6 +554,71 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
   </div>
 </div>
 
+<!-- CRM / PROSPECTS -->
+<div id="page-crm" class="page">
+  <div class="topbar">
+    <div class="topbar-title">CRM — Prospects & Relances</div>
+    <div class="topbar-actions">
+      <button class="btn btn-fb" onclick="fbSyncAll()">🔥 Sync</button>
+      <button class="btn btn-primary" onclick="openModal('m-prospect')">+ Nouveau prospect</button>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- KPIs CRM -->
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-l">Prospects chauds 🔴</div><div class="kpi-v" id="crm-chauds">0</div><div class="kpi-s">Action sous 7 jours</div></div>
+      <div class="kpi"><div class="kpi-l">Prospects tièdes 🟡</div><div class="kpi-v" id="crm-tiedes">0</div><div class="kpi-s">Action sous 30 jours</div></div>
+      <div class="kpi"><div class="kpi-l">Pipeline total</div><div class="kpi-v" id="crm-pipeline">0 F</div><div class="kpi-s pos">Potentiel FCFA</div></div>
+      <div class="kpi"><div class="kpi-l">Relances cette semaine</div><div class="kpi-v neg" id="crm-relances">0</div><div class="kpi-s">À contacter</div></div>
+    </div>
+
+    <!-- TABS -->
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" onclick="stab(this,'crm-all')">Tous les prospects</button>
+        <button class="tab" onclick="stab(this,'crm-urgent')">🚨 Urgent</button>
+        <button class="tab" onclick="stab(this,'crm-relances-tab')">📞 Relances</button>
+        <button class="tab" onclick="stab(this,'crm-gagnes')">✅ Gagnés</button>
+      </div>
+
+      <!-- TOUS -->
+      <div id="crm-all" class="tab-pane active">
+        <table>
+          <thead><tr><th>Prospect</th><th>Statut</th><th>Intérêt</th><th>Potentiel</th><th>Dernière action</th><th>Prochain contact</th><th>Actions</th></tr></thead>
+          <tbody id="crm-tbody-all"></tbody>
+        </table>
+      </div>
+
+      <!-- URGENT -->
+      <div id="crm-urgent" class="tab-pane">
+        <div style="padding:10px 14px;background:var(--red-bg);border-bottom:1px solid #F7C1C1;color:var(--red);font-size:12.5px;font-weight:600" id="crm-urgent-banner">⚠ Prospects à contacter en urgence</div>
+        <table>
+          <thead><tr><th>Prospect</th><th>Action requise</th><th>Montant</th><th>Délai</th><th>Contact</th><th>Actions</th></tr></thead>
+          <tbody id="crm-tbody-urgent"></tbody>
+        </table>
+      </div>
+
+      <!-- RELANCES -->
+      <div id="crm-relances-tab" class="tab-pane">
+        <table>
+          <thead><tr><th>Date</th><th>Prospect</th><th>Type</th><th>Message à envoyer</th><th>Priorité</th><th>Actions</th></tr></thead>
+          <tbody id="crm-tbody-relances"></tbody>
+        </table>
+      </div>
+
+      <!-- GAGNES -->
+      <div id="crm-gagnes" class="tab-pane">
+        <table>
+          <thead><tr><th>Client</th><th>Date conversion</th><th>Valeur</th><th>Contrat SAV</th></tr></thead>
+          <tbody id="crm-tbody-gagnes"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <!-- FIREBASE PAGE -->
 <div id="page-firebase" class="page">
   <div class="topbar"><div class="topbar-title">Firebase Firestore — oppin-erp</div><div class="topbar-actions"><button class="btn btn-fb" id="btn-fb-connect" onclick="initFirebase()">🔥 Connecter Firebase</button></div></div>
@@ -674,6 +741,44 @@ service cloud.firestore {
       <button class="btn" onclick="closeModal('m-facture')">Annuler</button>
       <button class="btn btn-fb" onclick="saveFactureFirebase()">🔥 Sauver Firebase</button>
       <button class="btn btn-primary" onclick="closeModal('m-facture')">📄 Créer la facture</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PROSPECT -->
+<div id="m-prospect" class="overlay">
+  <div class="modal">
+    <div class="modal-hd">Nouveau prospect <button class="xbtn" onclick="closeModal('m-prospect')">×</button></div>
+    <div class="modal-bd">
+      <div class="grid2">
+        <div class="fg"><label>Nom / Entreprise</label><input type="text" id="p-nom" placeholder="Ex: Pharmacie Cocody 2"></div>
+        <div class="fg"><label>Téléphone</label><input type="text" id="p-tel" placeholder="+225 07 00 00 000"></div>
+        <div class="fg"><label>Quartier</label><input type="text" id="p-zone" placeholder="Ex: Cocody"></div>
+        <div class="fg"><label>Statut</label>
+          <select id="p-statut">
+            <option value="chaud">🔴 Chaud — Action sous 7 jours</option>
+            <option value="tiede">🟡 Tiède — Action sous 30 jours</option>
+            <option value="froid">🔵 Froid — À relancer plus tard</option>
+          </select>
+        </div>
+        <div class="fg"><label>Intérêt principal</label><input type="text" id="p-interet" placeholder="Ex: Caméras anti-fraude"></div>
+        <div class="fg"><label>Montant potentiel (FCFA)</label><input type="number" id="p-montant" placeholder="Ex: 250000"></div>
+        <div class="fg"><label>Source</label>
+          <select id="p-source">
+            <option value="prospection">Prospection terrain</option>
+            <option value="bouche_a_oreille">Bouche à oreille</option>
+            <option value="client_existant">Client existant</option>
+            <option value="reseaux_sociaux">Réseaux sociaux</option>
+            <option value="autre">Autre</option>
+          </select>
+        </div>
+        <div class="fg"><label>Date prochain contact</label><input type="date" id="p-date"></div>
+        <div class="fg span2"><label>Notes</label><input type="text" id="p-notes" placeholder="Ex: Intéressé lors d'une visite terrain"></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn" onclick="closeModal('m-prospect')">Annuler</button>
+      <button class="btn btn-primary" onclick="ajouterProspect()">✚ Ajouter le prospect</button>
     </div>
   </div>
 </div>
@@ -802,8 +907,184 @@ service cloud.firestore {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
-// Date
-document.addEventListener('DOMContentLoaded', function(){
+// ============ DONNÉES CRM ============
+var CRM_DATA = {
+  prospects: [
+    {id:'PRO001',nom:'Pharmacie Bonheur Cocody',tel:'+225 07 00 00 002',zone:'Cocody',statut:'chaud',interet:'Contrat maintenance Essentielle',montant:15000,source:'client_existant',derniere_action:'2026-04-05',prochain_contact:'2026-04-14',notes:'Vient d\'acheter alarme + caméras. Moment idéal pour maintenance.'},
+    {id:'PRO002',nom:'Cabinet Médical Plateau',tel:'+225 07 00 00 004',zone:'Plateau',statut:'chaud',interet:'Alarme + contrat maintenance',montant:88000,source:'client_existant',derniere_action:'2026-04-10',prochain_contact:'2026-04-16',notes:'A acheté contrôle d\'accès. Intéressé par alarme.'},
+    {id:'PRO003',nom:'Chantier Immobilier Riviera 3',tel:'+225 07 00 00 003',zone:'Riviera',statut:'chaud',interet:'Solde restant 176 000 FCFA',montant:176000,source:'client_existant',derniere_action:'2026-04-08',prochain_contact:'2026-04-12',notes:'176 000 FCFA à encaisser. URGENT.'},
+    {id:'PRO004',nom:'Supermarché Marché Plus Yopougon',tel:'+225 07 00 00 014',zone:'Yopougon',statut:'chaud',interet:'Anti-fraude caisse + surveillance',montant:350000,source:'bouche_a_oreille',derniere_action:'2026-04-09',prochain_contact:'2026-04-13',notes:'Recommandé par Supermarché Bon Prix. Devis à envoyer.'},
+    {id:'PRO005',nom:'École Primaire Sainte Marie',tel:'+225 07 00 00 011',zone:'Cocody',statut:'tiede',interet:'Contrôle accès + caméras entrée',montant:320000,source:'bouche_a_oreille',derniere_action:'2026-03-28',prochain_contact:'2026-04-17',notes:'Recommandée par Résidence Les Palmiers.'},
+    {id:'PRO006',nom:'Immeuble Résidentiel Marcory',tel:'+225 07 00 00 013',zone:'Marcory',statut:'tiede',interet:'Solution Résidence complète',montant:450000,source:'prospection',derniere_action:'2026-04-01',prochain_contact:'2026-04-18',notes:'Syndic intéressé. Réunion à planifier.'},
+    {id:'PRO007',nom:'Restaurant Le Diplomate',tel:'+225 07 00 00 010',zone:'Plateau',statut:'tiede',interet:'Surveillance + anti-fraude caisse',montant:280000,source:'prospection',derniere_action:'2026-03-20',prochain_contact:'2026-04-15',notes:'A demandé à être rappelé en avril.'},
+    {id:'PRO008',nom:'Boutique Mode Adjamé',tel:'+225 07 00 00 012',zone:'Adjamé',statut:'froid',interet:'Caméras anti-vol',montant:150000,source:'prospection',derniere_action:'2026-02-15',prochain_contact:'2026-04-20',notes:'Devis envoyé en février. Pas de réponse.'}
+  ],
+  relances: [
+    {id:'REL001',prospect_id:'PRO003',nom:'Chantier Riviera 3',type:'encaissement',date:'2026-04-12',message:'Bonjour, nous vous contactons pour le solde de 176 000 FCFA suite à votre installation. Pouvons-nous convenir d\'un règlement cette semaine ?',priorite:'urgent'},
+    {id:'REL002',prospect_id:'PRO004',nom:'Supermarché Marché Plus',type:'envoi_devis',date:'2026-04-13',message:'Bonjour, suite à notre échange, je vous transmets notre devis pour la solution Anti-Fraude Caisse. Budget estimé : 350 000 FCFA. Disponible pour une présentation.',priorite:'haute'},
+    {id:'REL003',prospect_id:'PRO001',nom:'Pharmacie Bonheur',type:'maintenance',date:'2026-04-14',message:'Bonjour, depuis votre installation il y a quelques jours, comment fonctionne votre système ? Nous proposons un contrat maintenance à 15 000 FCFA/mois pour garantir son bon fonctionnement.',priorite:'haute'},
+    {id:'REL004',prospect_id:'PRO002',nom:'Cabinet Médical Plateau',type:'proposition',date:'2026-04-16',message:'Bonjour Docteur, suite à l\'installation de votre contrôle d\'accès, nous pouvons compléter votre sécurité avec une alarme Hikvision. Intervention possible cette semaine.',priorite:'haute'},
+    {id:'REL005',prospect_id:'PRO007',nom:'Restaurant Le Diplomate',type:'rappel',date:'2026-04-15',message:'Bonjour, vous nous aviez demandé de vous rappeler en avril. Nous serions ravis de vous présenter notre solution de surveillance pour votre restaurant.',priorite:'moyenne'}
+  ],
+  gagnes: [
+    {id:'G001',nom:'Résidence Les Palmiers',date_conversion:'2025-11-10',valeur:232000,contrat_sav:'Essentielle 15K/mois'},
+    {id:'G002',nom:'Supermarché Bon Prix Treichville',date_conversion:'2026-03-22',valeur:296000,contrat_sav:'Confort 25K/mois'}
+  ]
+};
+
+function renderCRM() {
+  var today = new Date().toISOString().split('T')[0];
+  var chauds = CRM_DATA.prospects.filter(p=>p.statut==='chaud').length;
+  var tiedes = CRM_DATA.prospects.filter(p=>p.statut==='tiede').length;
+  var pipeline = CRM_DATA.prospects.filter(p=>p.statut!=='perdu').reduce((s,p)=>s+p.montant,0);
+  var relancesAujourdhui = CRM_DATA.relances.filter(r=>r.date<=today).length;
+
+  document.getElementById('crm-chauds').textContent = chauds;
+  document.getElementById('crm-tiedes').textContent = tiedes;
+  document.getElementById('crm-pipeline').textContent = pipeline.toLocaleString('fr-FR')+' F';
+  document.getElementById('crm-relances').textContent = relancesAujourdhui;
+
+  var statutColor = {chaud:'#E24B4A',tiede:'var(--gold)',froid:'#185FA5',gagne:'#3B6D11',perdu:'#6E6E69'};
+  var statutLabel = {chaud:'🔴 Chaud',tiede:'🟡 Tiède',froid:'🔵 Froid',gagne:'✅ Gagné',perdu:'❌ Perdu'};
+  var statutBadge = {chaud:'br',tiede:'by',froid:'bb',gagne:'bg',perdu:'bgr'};
+
+  // Tous
+  document.getElementById('crm-tbody-all').innerHTML = CRM_DATA.prospects.map(p=>`
+    <tr>
+      <td><b>${p.nom}</b><div style="font-size:10.5px;color:var(--text2)">${p.zone} · ${p.tel}</div></td>
+      <td><span class="badge ${statutBadge[p.statut]||'bgr'}">${statutLabel[p.statut]||p.statut}</span></td>
+      <td style="font-size:12px">${p.interet}</td>
+      <td class="mono" style="font-weight:600;color:var(--green)">${p.montant.toLocaleString('fr-FR')} F</td>
+      <td style="font-size:11px;color:var(--text2)">${p.derniere_action}</td>
+      <td style="font-size:11px;${p.prochain_contact<=today?'color:var(--red);font-weight:600':''}">${p.prochain_contact}</td>
+      <td>
+        <div class="ra">
+          <button class="btn btn-sm" onclick="copierMessage('${p.id}')" title="Copier message WhatsApp">📱</button>
+          <button class="btn btn-sm btn-primary" onclick="marquerGagne('${p.id}')">✓ Gagné</button>
+          <button class="btn btn-sm btn-fb" onclick="fbSave('prospects','${p.id}',${JSON.stringify({nom:p.nom,statut:p.statut,montant:p.montant})})">🔥</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  // Urgent
+  var urgents = CRM_DATA.prospects.filter(p=>p.statut==='chaud');
+  document.getElementById('crm-urgent-banner').textContent = '⚠ '+urgents.length+' prospect(s) chauds — Pipeline : '+urgents.reduce((s,p)=>s+p.montant,0).toLocaleString('fr-FR')+' FCFA';
+  document.getElementById('crm-tbody-urgent').innerHTML = urgents.map(p=>`
+    <tr>
+      <td><b>${p.nom}</b><div style="font-size:10.5px;color:var(--text2)">${p.zone}</div></td>
+      <td style="font-size:12px">${p.interet}</td>
+      <td class="mono" style="color:var(--green);font-weight:600">${p.montant.toLocaleString('fr-FR')} F</td>
+      <td style="${p.prochain_contact<=today?'color:var(--red);font-weight:600':''}"><span class="badge ${p.prochain_contact<=today?'br':'by'}">${p.prochain_contact<=today?'EN RETARD':p.prochain_contact}</span></td>
+      <td style="font-size:12px">${p.tel}</td>
+      <td>
+        <div class="ra">
+          <button class="btn btn-sm btn-primary" onclick="copierMessage('${p.id}')">📱 WhatsApp</button>
+          <button class="btn btn-sm btn-danger" onclick="marquerGagne('${p.id}')">✓ Gagné</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  // Relances
+  document.getElementById('crm-tbody-relances').innerHTML = CRM_DATA.relances.map(r=>`
+    <tr>
+      <td style="${r.date<=today?'color:var(--red);font-weight:600':''}">${r.date}${r.date<=today?' ⚠':''}</td>
+      <td><b>${r.nom}</b></td>
+      <td><span class="badge bb">${r.type.replace('_',' ')}</span></td>
+      <td style="font-size:11.5px;max-width:300px">${r.message.substring(0,80)}...</td>
+      <td><span class="badge ${r.priorite==='urgent'?'br':r.priorite==='haute'?'by':'bgr'}">${r.priorite}</span></td>
+      <td>
+        <div class="ra">
+          <button class="btn btn-sm btn-primary" onclick="copierRelance('${r.id}')">📋 Copier</button>
+          <button class="btn btn-sm bg" onclick="marquerFaite('${r.id}')">✓ Fait</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  // Gagnés
+  document.getElementById('crm-tbody-gagnes').innerHTML = CRM_DATA.gagnes.map(g=>`
+    <tr>
+      <td><b>${g.nom}</b></td>
+      <td>${g.date_conversion}</td>
+      <td class="mono" style="color:var(--green);font-weight:600">${g.valeur.toLocaleString('fr-FR')} FCFA</td>
+      <td><span class="badge bg">${g.contrat_sav}</span></td>
+    </tr>
+  `).join('');
+}
+
+function ajouterProspect() {
+  var nom = document.getElementById('p-nom').value.trim();
+  var tel = document.getElementById('p-tel').value.trim();
+  if(!nom){toast('⚠ Nom requis','#A32D2D');return;}
+  var p = {
+    id:'PRO'+(Date.now()+'').slice(-4),
+    nom:nom, tel:tel,
+    zone:document.getElementById('p-zone').value,
+    statut:document.getElementById('p-statut').value,
+    interet:document.getElementById('p-interet').value,
+    montant:parseInt(document.getElementById('p-montant').value)||0,
+    source:document.getElementById('p-source').value,
+    derniere_action:new Date().toISOString().split('T')[0],
+    prochain_contact:document.getElementById('p-date').value||new Date().toISOString().split('T')[0],
+    notes:document.getElementById('p-notes').value
+  };
+  CRM_DATA.prospects.unshift(p);
+  fbSave('prospects',p.id,p);
+  closeModal('m-prospect');
+  toast('✅ Prospect '+nom+' ajouté !','#3B6D11');
+  renderCRM();
+  // Reset form
+  ['p-nom','p-tel','p-zone','p-interet','p-montant','p-date','p-notes'].forEach(id=>{
+    var el=document.getElementById(id);if(el)el.value='';
+  });
+}
+
+function copierMessage(prospectId) {
+  var p = CRM_DATA.prospects.find(x=>x.id===prospectId);
+  if(!p)return;
+  var relance = CRM_DATA.relances.find(r=>r.prospect_id===prospectId);
+  var msg = relance ? relance.message : 'Bonjour '+p.nom+',\n\nNous vous contactons concernant votre projet de sécurité ('+p.interet+').\nINOVON propose une solution adaptée à partir de '+p.montant.toLocaleString('fr-FR')+' FCFA.\nPouvons-nous en discuter ?\n\nCordialement, INOVON Abidjan\n+225 01 72 23 33 33';
+  navigator.clipboard.writeText(msg).then(()=>{
+    toast('📋 Message copié ! Colle dans WhatsApp','#3B6D11');
+  }).catch(()=>{
+    prompt('Copie ce message WhatsApp :', msg);
+  });
+}
+
+function copierRelance(relanceId) {
+  var r = CRM_DATA.relances.find(x=>x.id===relanceId);
+  if(!r)return;
+  navigator.clipboard.writeText(r.message).then(()=>{
+    toast('📋 Message copié ! Colle dans WhatsApp','#3B6D11');
+  }).catch(()=>{
+    prompt('Copie ce message :', r.message);
+  });
+}
+
+function marquerFaite(relanceId) {
+  CRM_DATA.relances = CRM_DATA.relances.filter(r=>r.id!==relanceId);
+  toast('✅ Relance marquée comme faite','#3B6D11');
+  renderCRM();
+}
+
+function marquerGagne(prospectId) {
+  var p = CRM_DATA.prospects.find(x=>x.id===prospectId);
+  if(!p)return;
+  CRM_DATA.gagnes.unshift({id:'G'+Date.now(),nom:p.nom,date_conversion:new Date().toISOString().split('T')[0],valeur:p.montant,contrat_sav:'À définir'});
+  CRM_DATA.prospects = CRM_DATA.prospects.filter(x=>x.id!==prospectId);
+  fbSave('crm-gagnes','G'+Date.now(),{nom:p.nom,valeur:p.montant});
+  toast('🎉 '+p.nom+' converti en client !','#3B6D11');
+  renderCRM();
+}
+
+// Render CRM quand on navigue dessus
+var _goOriginal = go;
+go = function(id, btn) {
+  _goOriginal(id, btn);
+  if(id === 'crm') renderCRM();
+};
   var el = document.getElementById('dash-date');
   if(el) el.textContent = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',function(e){if(e.target===this)this.classList.remove('active');}));
