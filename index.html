@@ -223,6 +223,79 @@ function addDvLine(){
 }
 function saveDv(){closeModal('m-devis');toast('✅ Devis enregistré','#3B6D11');}
 
+// ===== NOUVELLES FONCTIONS MODALS =====
+function ajouterClient(){
+  var nom=document.getElementById('cl-nom').value.trim();
+  if(!nom){toast('⚠ Nom requis','#A32D2D');return;}
+  closeModal('m-client');
+  fbSave('clients',nom.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,''),{
+    nom:nom,
+    secteur:document.getElementById('cl-secteur').value,
+    tel:document.getElementById('cl-tel').value,
+    zone:document.getElementById('cl-zone').value,
+    contratSAV:document.getElementById('cl-sav').value,
+    caTotal:parseInt(document.getElementById('cl-ca').value)||0,
+    notes:document.getElementById('cl-notes').value,
+    dateCreation:new Date().toISOString().split('T')[0]
+  });
+  toast('✅ Client '+nom+' ajouté !','#3B6D11');
+  ['cl-nom','cl-tel','cl-zone','cl-ca','cl-notes'].forEach(id=>{var e=document.getElementById(id);if(e)e.value='';});
+}
+
+function ajouterCommande(){
+  var client=document.getElementById('cmd-client').value;
+  var montant=document.getElementById('cmd-montant').value;
+  if(client==='— Choisir —'||!montant){toast('⚠ Client et montant requis','#A32D2D');return;}
+  var ref='C-2026-'+Date.now().toString().slice(-3);
+  closeModal('m-commande');
+  fbSave('commandes',ref,{
+    client,
+    description:document.getElementById('cmd-desc').value,
+    montantTTC:parseInt(montant),
+    date:document.getElementById('cmd-date').value||new Date().toISOString().split('T')[0],
+    technicien:document.getElementById('cmd-tech').value,
+    statut:'confirmee'
+  });
+  toast('✅ Commande '+ref+' créée !','#3B6D11');
+}
+
+function ajouterStock(){
+  var produit=document.getElementById('st-produit').value;
+  var qte=parseInt(document.getElementById('st-qte').value)||0;
+  if(produit==='— Choisir —'||qte<=0){toast('⚠ Produit et quantité requis','#A32D2D');return;}
+  closeModal('m-stock');
+  var ref='ENTREE-'+Date.now().toString().slice(-4);
+  fbSave('stock-entrees',ref,{
+    produit,qte,
+    puAchat:parseInt(document.getElementById('st-pu').value)||0,
+    fournisseur:document.getElementById('st-fourn').value,
+    date:document.getElementById('st-date').value||new Date().toISOString().split('T')[0],
+    bl:document.getElementById('st-bl').value
+  });
+  toast('✅ Entrée stock enregistrée — '+qte+'x '+produit.split(' — ')[0],'#3B6D11');
+}
+
+function ajouterStockFirebase(){ ajouterStock(); }
+
+function ajouterCommandeFourn(){
+  var fourn=document.getElementById('f-nom').value;
+  var montant=document.getElementById('f-montant').value;
+  if(!montant){toast('⚠ Montant requis','#A32D2D');return;}
+  var ref='CF-'+Date.now().toString().slice(-4);
+  closeModal('m-fournisseur');
+  fbSave('commandes-fourn',ref,{
+    fournisseur:fourn,
+    produit:document.getElementById('f-produit').value,
+    montant:parseInt(montant),
+    date:document.getElementById('f-date').value||new Date().toISOString().split('T')[0],
+    delai:document.getElementById('f-delai').value,
+    paiement:document.getElementById('f-paiement').value,
+    notes:document.getElementById('f-notes').value,
+    statut:'en_attente'
+  });
+  toast('✅ Commande fournisseur '+ref+' enregistrée !','#3B6D11');
+}
+
 // Auth
 async function seConnecter(){
   var email = document.getElementById('login-email').value.trim();
@@ -437,7 +510,7 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
 
 <!-- COMMANDES -->
 <div id="page-commandes" class="page">
-  <div class="topbar"><div class="topbar-title">Commandes clients</div><div class="topbar-actions"><button class="btn btn-primary">+ Nouvelle commande</button></div></div>
+  <div class="topbar"><div class="topbar-title">Commandes clients</div><div class="topbar-actions"><button class="btn btn-primary" onclick="openModal('m-commande')">+ Nouvelle commande</button></div></div>
   <div class="content">
     <div class="card">
       <table><thead><tr><th>Référence</th><th>Client</th><th>Description</th><th>TTC (FCFA)</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead>
@@ -531,7 +604,7 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
 
 <!-- STOCK -->
 <div id="page-stock" class="page">
-  <div class="topbar"><div class="topbar-title">Stock INOVON</div><div class="topbar-actions"><button class="btn btn-fb" onclick="fbSyncAll()">🔥 Sync</button><button class="btn btn-primary">+ Entrée stock</button></div></div>
+  <div class="topbar"><div class="topbar-title">Stock INOVON</div><div class="topbar-actions"><button class="btn btn-fb" onclick="fbSyncAll()">🔥 Sync</button><button class="btn btn-primary" onclick="openModal('m-stock')">+ Entrée stock</button></div></div>
   <div class="content">
     <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
       <div class="kpi"><div class="kpi-l">Références</div><div class="kpi-v">24</div></div>
@@ -554,7 +627,7 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
 
 <!-- FOURNISSEURS -->
 <div id="page-fournisseurs" class="page">
-  <div class="topbar"><div class="topbar-title">Fournisseurs</div><div class="topbar-actions"><button class="btn btn-primary">+ Commande fournisseur</button></div></div>
+  <div class="topbar"><div class="topbar-title">Fournisseurs</div><div class="topbar-actions"><button class="btn btn-primary" onclick="openModal('m-fournisseur')">+ Commande fournisseur</button></div></div>
   <div class="content">
     <div class="card"><div class="card-hd"><div class="card-hd-t">Fournisseurs actifs</div></div>
       <table><thead><tr><th>Fournisseur</th><th>Zone</th><th>Spécialité</th><th>Statut</th></tr></thead>
@@ -852,6 +925,93 @@ service cloud.firestore {
     <div class="modal-ft">
       <button class="btn" onclick="closeModal('m-prospect')">Annuler</button>
       <button class="btn btn-primary" onclick="ajouterProspect()">✚ Ajouter le prospect</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CLIENT -->
+<div id="m-client" class="overlay">
+  <div class="modal">
+    <div class="modal-hd">Nouveau client <button class="xbtn" onclick="closeModal('m-client')">×</button></div>
+    <div class="modal-bd">
+      <div class="grid2">
+        <div class="fg"><label>Nom / Entreprise</label><input type="text" id="cl-nom" placeholder="Ex: Résidence Les Bois"></div>
+        <div class="fg"><label>Secteur</label><select id="cl-secteur"><option>Commerce</option><option>Santé</option><option>Finance</option><option>Hôtellerie</option><option>Immobilier</option><option>Éducation</option><option>Restauration</option><option>Autre</option></select></div>
+        <div class="fg"><label>Téléphone</label><input type="text" id="cl-tel" placeholder="+225 07 00 00 000"></div>
+        <div class="fg"><label>Zone / Quartier</label><input type="text" id="cl-zone" placeholder="Ex: Cocody"></div>
+        <div class="fg"><label>Contrat SAV</label><select id="cl-sav"><option value="aucun">Aucun</option><option value="essentielle">Essentielle — 15 000/mois</option><option value="confort">Confort — 25 000/mois</option><option value="premium">Premium — 50 000/mois</option></select></div>
+        <div class="fg"><label>CA total (FCFA)</label><input type="number" id="cl-ca" placeholder="0" value="0"></div>
+        <div class="fg span2"><label>Notes</label><input type="text" id="cl-notes" placeholder="Ex: Installation caméras + alarme"></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn" onclick="closeModal('m-client')">Annuler</button>
+      <button class="btn btn-primary" onclick="ajouterClient()">✚ Ajouter le client</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL COMMANDE -->
+<div id="m-commande" class="overlay">
+  <div class="modal">
+    <div class="modal-hd">Nouvelle commande <button class="xbtn" onclick="closeModal('m-commande')">×</button></div>
+    <div class="modal-bd">
+      <div class="grid2">
+        <div class="fg"><label>Client</label><select id="cmd-client"><option>— Choisir —</option><option>Pharmacie Cocody</option><option>Sté COFIPA SA</option><option>Hôtel Ivotel</option><option>Résidence Les Bois</option><option>Supermarché Orca</option></select></div>
+        <div class="fg"><label>Depuis un devis</label><select id="cmd-devis"><option>— Saisie manuelle —</option><option>D-2026-031 — Pharmacie Cocody</option><option>D-2026-030 — Supermarché Orca</option><option>D-2026-028 — Résidence Palm</option></select></div>
+        <div class="fg"><label>Description</label><input type="text" id="cmd-desc" placeholder="Ex: Anti-Fraude 4 cam. + NVR"></div>
+        <div class="fg"><label>Montant TTC (FCFA)</label><input type="number" id="cmd-montant" placeholder="Ex: 1003000"></div>
+        <div class="fg"><label>Date</label><input type="date" id="cmd-date"></div>
+        <div class="fg"><label>Technicien</label><select id="cmd-tech"><option>Kodjo</option><option>Ulrich</option><option>Fabrice</option></select></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn" onclick="closeModal('m-commande')">Annuler</button>
+      <button class="btn btn-primary" onclick="ajouterCommande()">✚ Créer la commande</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL STOCK -->
+<div id="m-stock" class="overlay">
+  <div class="modal">
+    <div class="modal-hd">Entrée stock <button class="xbtn" onclick="closeModal('m-stock')">×</button></div>
+    <div class="modal-bd">
+      <div class="grid2">
+        <div class="fg"><label>Produit</label><select id="st-produit"><option>— Choisir —</option><option>DS-2CD2143G2-I — Caméra dôme 4MP</option><option>DS-7208HUHI-K2 — DVR 8 voies</option><option>DS-2CD2T47G2-L — Caméra bullet</option><option>Câble coaxial RG6</option><option>DS-KD8003-IME1 — Interphone vidéo</option><option>Alim. 12V/5A</option></select></div>
+        <div class="fg"><label>Quantité reçue</label><input type="number" id="st-qte" min="1" value="1" placeholder="Ex: 5"></div>
+        <div class="fg"><label>Prix unitaire achat (FCFA)</label><input type="number" id="st-pu" placeholder="Ex: 45000"></div>
+        <div class="fg"><label>Fournisseur</label><select id="st-fourn"><option>Hikvision CI</option><option>MaestroElec</option><option>Dahua CI</option><option>Autre</option></select></div>
+        <div class="fg"><label>Date réception</label><input type="date" id="st-date"></div>
+        <div class="fg"><label>N° bon de livraison</label><input type="text" id="st-bl" placeholder="Ex: BL-F-2026-001"></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn" onclick="closeModal('m-stock')">Annuler</button>
+      <button class="btn btn-fb" onclick="ajouterStockFirebase()">🔥 Sauver Firebase</button>
+      <button class="btn btn-primary" onclick="ajouterStock()">✚ Enregistrer l'entrée</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL COMMANDE FOURNISSEUR -->
+<div id="m-fournisseur" class="overlay">
+  <div class="modal">
+    <div class="modal-hd">Commande fournisseur <button class="xbtn" onclick="closeModal('m-fournisseur')">×</button></div>
+    <div class="modal-bd">
+      <div class="grid2">
+        <div class="fg"><label>Fournisseur</label><select id="f-nom"><option>Hikvision CI</option><option>MaestroElec</option><option>Dahua CI</option><option>Autre</option></select></div>
+        <div class="fg"><label>Date commande</label><input type="date" id="f-date"></div>
+        <div class="fg"><label>Produit commandé</label><input type="text" id="f-produit" placeholder="Ex: 10x Caméra dôme 4MP"></div>
+        <div class="fg"><label>Montant total (FCFA)</label><input type="number" id="f-montant" placeholder="Ex: 450000"></div>
+        <div class="fg"><label>Délai livraison</label><input type="text" id="f-delai" placeholder="Ex: 3-5 jours ouvrables"></div>
+        <div class="fg"><label>Mode paiement</label><select id="f-paiement"><option>Virement bancaire</option><option>Espèces</option><option>Mobile Money</option><option>Chèque</option></select></div>
+        <div class="fg span2"><label>Notes</label><input type="text" id="f-notes" placeholder="Ex: Commande urgente — stock câbles épuisé"></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn" onclick="closeModal('m-fournisseur')">Annuler</button>
+      <button class="btn btn-primary" onclick="ajouterCommandeFourn()">✚ Enregistrer la commande</button>
     </div>
   </div>
 </div>
