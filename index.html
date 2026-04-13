@@ -348,6 +348,46 @@ function ajouterMouvement(){
 
 function ajouterMouvementFirebase(){ ajouterMouvement(); }
 
+function sortieStock(){
+  var produitVal = document.getElementById('ss-produit').value;
+  var qte = parseInt(document.getElementById('ss-qte').value)||0;
+  if(!produitVal){toast('⚠ Choisir un produit','#A32D2D');return;}
+  if(qte<=0){toast('⚠ Quantité invalide','#A32D2D');return;}
+  var parts = produitVal.split('|');
+  var ref = parts[0];
+  var stockActuel = parseInt(parts[1])||0;
+  if(qte > stockActuel){toast('⚠ Stock insuffisant — seulement '+stockActuel+' disponible','#A32D2D');return;}
+  var nouveauStock = stockActuel - qte;
+  var motif = document.getElementById('ss-motif').value;
+  var client = document.getElementById('ss-client').value;
+  var refSortie = 'SORTIE-'+Date.now().toString().slice(-5);
+  closeModal('m-sortie-stock');
+  // Sauvegarde du mouvement de sortie
+  fbSave('stock-sorties', refSortie, {
+    produit: ref, qte, motif, client,
+    date: document.getElementById('ss-date').value || new Date().toISOString().split('T')[0],
+    bl: document.getElementById('ss-bl').value,
+    stockAvant: stockActuel,
+    stockApres: nouveauStock
+  });
+  // Met à jour le stock dans l'affichage
+  var rows = document.querySelectorAll('#page-stock table tbody tr');
+  rows.forEach(function(row){
+    if(row.textContent.includes(ref)){
+      var qteCell = row.querySelector('td:nth-child(3) b');
+      if(qteCell){
+        qteCell.textContent = nouveauStock;
+        if(nouveauStock <= 2) qteCell.style.color = 'var(--red)';
+        else qteCell.style.color = '';
+      }
+      // Met à jour les options du select sortie
+      var opt = document.querySelector('#ss-produit option[value="'+produitVal+'"]');
+      if(opt) opt.value = ref+'|'+nouveauStock;
+    }
+  });
+  toast('✅ Sortie de '+qte+'x '+ref+' enregistrée — Stock restant : '+nouveauStock,'#3B6D11');
+}
+
 // Auth
 async function seConnecter(){
   var email = document.getElementById('login-email').value.trim();
@@ -656,7 +696,7 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
 
 <!-- STOCK -->
 <div id="page-stock" class="page">
-  <div class="topbar"><div class="topbar-title">Stock INOVON</div><div class="topbar-actions"><button class="btn btn-fb" onclick="fbSyncAll()">🔥 Sync</button><button class="btn btn-primary" onclick="openModal('m-stock')">+ Entrée stock</button></div></div>
+  <div class="topbar"><div class="topbar-title">Stock INOVON</div><div class="topbar-actions"><button class="btn btn-fb" onclick="fbSyncAll()">🔥 Sync</button><button class="btn btn-danger" onclick="openModal('m-sortie-stock')">− Sortie stock</button><button class="btn btn-primary" onclick="openModal('m-stock')">+ Entrée stock</button></div></div>
   <div class="content">
     <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
       <div class="kpi"><div class="kpi-l">Références</div><div class="kpi-v">3</div></div>
@@ -1050,6 +1090,43 @@ service cloud.firestore {
     <div class="modal-ft">
       <button class="btn" onclick="closeModal('m-commande')">Annuler</button>
       <button class="btn btn-primary" onclick="ajouterCommande()">✚ Créer la commande</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SORTIE STOCK -->
+<div id="m-sortie-stock" class="overlay">
+  <div class="modal">
+    <div class="modal-hd">Sortie stock <button class="xbtn" onclick="closeModal('m-sortie-stock')">×</button></div>
+    <div class="modal-bd">
+      <div class="info-box yellow">⚠ Une sortie stock diminue définitivement la quantité disponible.</div>
+      <div class="grid2">
+        <div class="fg"><label>Produit</label>
+          <select id="ss-produit">
+            <option value="">— Choisir —</option>
+            <option value="DS-2CE16D0T-BULLET|5">DS-2CE16D0T-BULLET — Caméra bullet (5 en stock)</option>
+            <option value="DS-2CE76D0T-DOME|2">DS-2CE76D0T-DOME — Caméra dôme (2 en stock)</option>
+            <option value="DS-7204-4CH|1">DS-7204-4CH — DVR 4 canaux (1 en stock)</option>
+          </select>
+        </div>
+        <div class="fg"><label>Quantité sortie</label><input type="number" id="ss-qte" min="1" value="1" placeholder="Ex: 2"></div>
+        <div class="fg"><label>Motif</label>
+          <select id="ss-motif">
+            <option value="installation">Installation client</option>
+            <option value="vente_directe">Vente directe</option>
+            <option value="retour_fournisseur">Retour fournisseur</option>
+            <option value="defectueux">Produit défectueux</option>
+            <option value="autre">Autre</option>
+          </select>
+        </div>
+        <div class="fg"><label>Client / Chantier</label><input type="text" id="ss-client" placeholder="Ex: Pharmacie Cocody"></div>
+        <div class="fg"><label>Date</label><input type="date" id="ss-date"></div>
+        <div class="fg"><label>N° Bon de livraison</label><input type="text" id="ss-bl" placeholder="Ex: BL-2026-045"></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn" onclick="closeModal('m-sortie-stock')">Annuler</button>
+      <button class="btn btn-danger" onclick="sortieStock()">− Confirmer la sortie</button>
     </div>
   </div>
 </div>
