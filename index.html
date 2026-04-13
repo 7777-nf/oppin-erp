@@ -3,10 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OPPIN ERP v3 — OPPIN SARL</title>
+<title>OPPIN ERP — OPPORTUNITES INVEST SARL</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--gold:#FFD600;--dark:#111111;--bg:#F5F4F0;--surface:#FFFFFF;--surface2:#F0EFE9;--border:#E0DFD8;--text:#1C1C1A;--text2:#6E6E69;--green-bg:#EAF3DE;--green:#3B6D11;--red-bg:#FCEBEB;--red:#A32D2D;--blue-bg:#E6F1FB;--blue:#185FA5;--yellow-bg:#FAEEDA;--yellow:#7C5E00;--radius:10px;--radius-sm:6px}
+:root{
+  --gold:#8B1A2E;
+  --accent:#8B1A2E;
+  --accent2:#5a5a5a;
+  --dark:#1a1a1a;
+  --bg:#F5F4F0;
+  --surface:#FFFFFF;
+  --surface2:#F0EFE9;
+  --border:#E0DFD8;
+  --text:#1C1C1A;
+  --text2:#6E6E69;
+  --green-bg:#EAF3DE;
+  --green:#3B6D11;
+  --red-bg:#FCEBEB;
+  --red:#A32D2D;
+  --blue-bg:#E6F1FB;
+  --blue:#185FA5;
+  --yellow-bg:#fdecea;
+  --yellow:#8B1A2E;
+  --radius:10px;
+  --radius-sm:6px
+}
 html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;color:var(--text);background:var(--bg)}
 .shell{display:flex;height:100vh;overflow:hidden}
 .sidebar{width:200px;min-width:200px;background:var(--dark);display:flex;flex-direction:column;overflow:hidden}
@@ -133,7 +154,8 @@ tr:hover td{background:#FAFAF7}
 .login-label{font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:block}
 .login-input{width:100%;background:#111;border:1px solid #333;color:#fff;padding:11px 14px;border-radius:8px;font-size:14px;font-family:inherit;margin-bottom:14px;outline:none;transition:border-color .2s}
 .login-input:focus{border-color:var(--gold)}
-.login-btn{width:100%;background:var(--gold);color:#111;border:none;padding:12px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px;transition:opacity .2s}
+.login-logo span{color:#8B1A2E}
+.login-btn{width:100%;background:#8B1A2E;color:#fff;border:none;padding:12px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px;transition:opacity .2s}
 .login-btn:hover{opacity:.88}
 .login-btn:disabled{opacity:.5;cursor:not-allowed}
 .login-error{background:rgba(163,45,45,.2);border:1px solid #A32D2D;color:#ff6b6b;padding:10px 14px;border-radius:8px;font-size:12.5px;margin-bottom:14px;display:none}
@@ -281,8 +303,18 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
 <!-- ECRAN DE LOGIN -->
 <div id="login-screen">
   <div class="login-box">
-    <div class="login-logo">OPPIN<span>ERP</span></div>
-    <div class="login-sub">OPPIN SARL — Abidjan, Côte d'Ivoire</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+      <svg width="44" height="44" viewBox="0 0 100 100" fill="none">
+        <path d="M50 8 C25 8 8 25 8 50 C8 75 25 92 50 92" stroke="#8B1A2E" stroke-width="8" stroke-linecap="round" fill="none"/>
+        <path d="M50 8 C75 8 92 25 92 50 C92 75 75 92 50 92" stroke="#5a5a5a" stroke-width="8" stroke-linecap="round" fill="none"/>
+        <text x="50" y="56" text-anchor="middle" font-family="serif" font-weight="700" font-size="22" fill="#fff" letter-spacing="1">OPPIN</text>
+      </svg>
+      <div>
+        <div class="login-logo">OPPIN<span>ERP</span></div>
+        <div class="login-sub" style="margin-bottom:0">OPPORTUNITES INVEST SARL</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:rgba(255,255,255,.25);margin-bottom:24px">📍 Av. 17 Rue 24, Treichville · 📞 01 40 50 30 30</div>
     <div class="login-error" id="login-error">Email ou mot de passe incorrect.</div>
     <label class="login-label">Email</label>
     <input class="login-input" type="email" id="login-email" placeholder="votre@email.com" autocomplete="email">
@@ -295,7 +327,14 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
 
 <!-- BARRE MOBILE -->
 <div class="mob-bar">
-  <div class="mob-logo">OPPIN<span>ERP</span></div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <svg width="26" height="26" viewBox="0 0 100 100" fill="none">
+      <path d="M50 8 C25 8 8 25 8 50 C8 75 25 92 50 92" stroke="#8B1A2E" stroke-width="10" stroke-linecap="round" fill="none"/>
+      <path d="M50 8 C75 8 92 25 92 50 C92 75 75 92 50 92" stroke="#888" stroke-width="10" stroke-linecap="round" fill="none"/>
+      <text x="50" y="57" text-anchor="middle" font-family="serif" font-weight="700" font-size="24" fill="#fff">O</text>
+    </svg>
+    <div class="mob-logo">OPPIN<span style="color:#8B1A2E"> ERP</span></div>
+  </div>
   <button class="mob-menu-btn" onclick="toggleMobNav()">☰</button>
 </div>
 
@@ -303,9 +342,16 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
 <div class="mob-nav-overlay" id="mob-overlay" onclick="toggleMobNav()"></div>
 <nav class="sidebar-drawer" id="mob-drawer">
   <div class="logo-wrap" style="display:flex;justify-content:space-between;align-items:center">
-    <div>
-      <div class="logo-main">OPPIN<span>ERP</span></div>
-      <div class="logo-sub">OPPIN SARL — Abidjan, CI</div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <svg width="30" height="30" viewBox="0 0 100 100" fill="none">
+        <path d="M50 8 C25 8 8 25 8 50 C8 75 25 92 50 92" stroke="#8B1A2E" stroke-width="9" stroke-linecap="round" fill="none"/>
+        <path d="M50 8 C75 8 92 25 92 50 C92 75 75 92 50 92" stroke="#5a5a5a" stroke-width="9" stroke-linecap="round" fill="none"/>
+        <text x="50" y="56" text-anchor="middle" font-family="serif" font-weight="700" font-size="22" fill="#fff" letter-spacing="1">OPPIN</text>
+      </svg>
+      <div>
+        <div class="logo-main" style="color:#fff;font-size:14px;font-weight:700">OPPIN<span style="color:#8B1A2E"> ERP</span></div>
+        <div class="logo-sub" style="font-size:9px;color:rgba(255,255,255,.3)">OPPORTUNITES INVEST SARL</div>
+      </div>
     </div>
     <button onclick="toggleMobNav()" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer">×</button>
   </div>
@@ -340,8 +386,17 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
 
 <nav class="sidebar">
   <div class="logo-wrap">
-    <div class="logo-main">OPPIN<span>ERP</span></div>
-    <div class="logo-sub">OPPIN SARL — Abidjan, CI</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <svg width="36" height="36" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M50 8 C25 8 8 25 8 50 C8 75 25 92 50 92" stroke="#8B1A2E" stroke-width="8" stroke-linecap="round" fill="none"/>
+        <path d="M50 8 C75 8 92 25 92 50 C92 75 75 92 50 92" stroke="#5a5a5a" stroke-width="8" stroke-linecap="round" fill="none"/>
+        <text x="50" y="56" text-anchor="middle" font-family="serif" font-weight="700" font-size="22" fill="#fff" letter-spacing="1">OPPIN</text>
+      </svg>
+      <div>
+        <div class="logo-main" style="color:#fff;font-size:15px;font-weight:700;letter-spacing:0.5px">OPPIN<span style="color:#8B1A2E"> ERP</span></div>
+        <div class="logo-sub" style="color:rgba(255,255,255,.35);font-size:9px;margin-top:2px">OPPORTUNITES INVEST SARL</div>
+      </div>
+    </div>
   </div>
   <div class="nav-scroll">
     <div class="nav-lbl">Tableau de bord</div>
@@ -489,12 +544,12 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
           </div>
           <div class="inv-sheet">
             <div class="inv-hd">
-              <div><div class="inv-logo">INOVON <span>|</span> OPPIN SARL</div><div style="font-size:11.5px;color:var(--text2);margin-top:6px;line-height:1.65">Abidjan, Côte d'Ivoire<br>RCCM : CI-ABJ-2022-B-XXXXX<br>+225 07 XX XX XX XX</div></div>
+              <div><div class="inv-logo">INOVON <span>|</span> OPPIN SARL</div><div style="font-size:11.5px;color:var(--text2);margin-top:6px;line-height:1.65">Abidjan, Côte d'Ivoire<br>RCCM : CI-ABJ-2022-B-XXXXX<br>+225 01 40 50 30 30</div></div>
               <div class="inv-meta"><strong>FACTURE N° F-2026-047</strong><div>Date : 04/04/2026</div><div>Échéance : 07/04/2026</div><div style="margin-top:7px"><span class="badge bg">Payée</span></div></div>
             </div>
             <div class="inv-parties">
               <div><div class="inv-pl">Émetteur</div><div class="inv-pn">OPPIN SARL — INOVON</div><div class="inv-pi">Abidjan, Côte d'Ivoire<br><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="99faf6f7edf8faedd9f6e9e9f0f7b4faf0b7faf6f4">[email&#160;protected]</a></div></div>
-              <div><div class="inv-pl">Client</div><div class="inv-pn">Résidence Les Bois</div><div class="inv-pi">Riviera, Abidjan<br>+225 07 XX XX XX XX</div></div>
+              <div><div class="inv-pl">Client</div><div class="inv-pn">Résidence Les Bois</div><div class="inv-pi">Riviera, Abidjan<br>+225 01 40 50 30 30</div></div>
             </div>
             <table class="inv-tbl">
               <thead><tr><th>Désignation</th><th style="text-align:right">Qté</th><th style="text-align:right">PU HT</th><th style="text-align:right">Total HT</th></tr></thead>
@@ -507,7 +562,7 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
               </tbody>
             </table>
             <div class="inv-tots"><div class="tots-box"><div class="tot-row"><span>Sous-total HT</span><span>420 000 FCFA</span></div><div class="tot-row"><span>TVA 18%</span><span>75 600 FCFA</span></div><div class="tot-total"><span>TOTAL TTC</span><span>495 600 FCFA</span></div></div></div>
-            <div class="inv-footer">Règlement : Orange Money (+225 07 XX XX XX XX) | MTN MoMo | Wave | Virement bancaire<br>Merci de votre confiance — INOVON, solutions de sécurité électronique, Abidjan.</div>
+            <div class="inv-footer">Règlement : Orange Money (+225 01 40 50 30 30) | MTN MoMo | Wave | Virement bancaire<br>Merci de votre confiance — INOVON, solutions de sécurité électronique, Abidjan.</div>
           </div>
         </div>
       </div>
@@ -1188,7 +1243,7 @@ function exportPDF(type,ref,client){
   doc.setFontSize(10);doc.setTextColor(...GOLD);
   doc.text(lbl+' No '+ref,W-M,12,{align:'right'});
   doc.setTextColor(190,190,190);doc.setFontSize(8);doc.setFont('helvetica','normal');
-  doc.text('Abidjan, Cote d\'Ivoire  |  RCCM CI-ABJ-2022-B-XXXXX  |  +225 07 XX XX XX XX',M,23);
+  doc.text('Abidjan, Cote d\'Ivoire  |  RCCM CI-ABJ-2022-B-XXXXX  |  +225 01 40 50 30 30',M,23);
   var y=36,today=new Date().toLocaleDateString('fr-FR');
   doc.setTextColor(...DARK);doc.setFontSize(9);
   doc.setFont('helvetica','bold');doc.text('Date :',M,y);doc.setFont('helvetica','normal');doc.text(today,M+16,y);
@@ -1196,7 +1251,7 @@ function exportPDF(type,ref,client){
   doc.setFont('helvetica','bold');doc.text('Ref :',M,y+12);doc.setFont('helvetica','normal');doc.text(ref,M+13,y+12);
   doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.text('Emis par :',W-M,y,{align:'right'});
   doc.setFont('helvetica','normal');doc.text('OPPIN SARL — INOVON',W-M,y+5,{align:'right'});
-  doc.text('contact@oppin-ci.com',W-M,y+10,{align:'right'});
+  doc.text('contact@opportunitesinvest.ci',W-M,y+10,{align:'right'});
   y=58;var tblW=W-2*M;
   doc.setFillColor(...DARK);doc.rect(M,y,tblW,7,'F');
   doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(8);
@@ -1237,13 +1292,13 @@ function exportPDF(type,ref,client){
   doc.setTextColor(...GRAY);doc.setFont('helvetica','normal');doc.setFontSize(8);
   if(type==='bl'){
     doc.text('Signature technicien : _______________________   Signature client : _______________________',M+3,fy+6);
-    doc.text('Livraison par Kodjo — INOVON / OPPIN SARL — Abidjan',M+3,fy+13);
+    doc.text('Livraison par Kodjo — INOVON / OPPORTUNITES INVEST SARL — Abidjan',M+3,fy+13);
   }else if(type==='contrat'){
     doc.text('Contrat renouvelable tacitement. Preavis de resiliation : 30 jours.',M+3,fy+6);
-    doc.text('INOVON / OPPIN SARL — contact@oppin-ci.com — Abidjan',M+3,fy+13);
+    doc.text('INOVON / OPPORTUNITES INVEST SARL — contact@opportunitesinvest.ci — Abidjan',M+3,fy+13);
   }else{
-    doc.text('Reglement : Orange Money (+225 07 XX XX XX XX)  |  MTN MoMo  |  Wave  |  Virement',M+3,fy+6);
-    doc.text('INOVON / OPPIN SARL — Solutions de securite electronique — Abidjan',M+3,fy+13);
+    doc.text('Reglement : Orange Money (+225 01 40 50 30 30)  |  MTN MoMo  |  Wave  |  Virement',M+3,fy+6);
+    doc.text('INOVON / OPPORTUNITES INVEST SARL — Solutions de securite electronique — Abidjan',M+3,fy+13);
   }
   doc.setFontSize(7.5);doc.setTextColor(...GRAY);
   doc.text('OPPIN ERP v3 — '+new Date().toLocaleString('fr-FR'),W/2,290,{align:'center'});
