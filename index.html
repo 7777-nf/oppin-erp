@@ -296,6 +296,58 @@ function ajouterCommandeFourn(){
   toast('✅ Commande fournisseur '+ref+' enregistrée !','#3B6D11');
 }
 
+function ajouterBL(){
+  var client=document.getElementById('bl-client').value;
+  if(client==='— Choisir —'){toast('⚠ Client requis','#A32D2D');return;}
+  var ref='BL-2026-'+Date.now().toString().slice(-3);
+  closeModal('m-bl');
+  fbSave('livraisons',ref,{
+    client,
+    technicien:document.getElementById('bl-tech').value,
+    zone:document.getElementById('bl-zone').value,
+    date:document.getElementById('bl-date').value||new Date().toISOString().split('T')[0],
+    statut:document.getElementById('bl-statut').value
+  });
+  toast('✅ BL '+ref+' créé !','#3B6D11');
+}
+
+function ajouterContrat(){
+  var client=document.getElementById('ct-client').value;
+  if(client==='— Choisir —'){toast('⚠ Client requis','#A32D2D');return;}
+  var formule=document.getElementById('ct-formule').value;
+  var mensualite=formule==='essentielle'?15000:formule==='confort'?25000:50000;
+  var ref=client.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')+'-'+new Date().getFullYear();
+  closeModal('m-contrat');
+  fbSave('contrats-sav',ref,{
+    client,formule,mensualite,
+    debut:document.getElementById('ct-debut').value||new Date().toISOString().split('T')[0],
+    prochainRDV:document.getElementById('ct-rdv').value,
+    notes:document.getElementById('ct-notes').value,
+    statut:'actif'
+  });
+  toast('✅ Contrat SAV '+formule+' créé pour '+client+' !','#3B6D11');
+}
+
+function ajouterContratFirebase(){ ajouterContrat(); }
+
+function ajouterMouvement(){
+  var montant=parseInt(document.getElementById('mv-montant').value)||0;
+  var libelle=document.getElementById('mv-libelle').value.trim();
+  if(!montant||!libelle){toast('⚠ Montant et libellé requis','#A32D2D');return;}
+  var ref='MVT-'+Date.now().toString().slice(-6);
+  var type=document.getElementById('mv-type').value;
+  closeModal('m-mouvement');
+  fbSave('tresorerie',ref,{
+    type,montant,libelle,
+    moyen:document.getElementById('mv-moyen').value,
+    date:document.getElementById('mv-date').value||new Date().toISOString().split('T')[0]
+  });
+  toast((type==='entree'?'💚 Entrée':'🔴 Sortie')+' de '+montant.toLocaleString('fr-FR')+' FCFA enregistrée !','#3B6D11');
+  ['mv-montant','mv-libelle','mv-date'].forEach(id=>{var e=document.getElementById(id);if(e)e.value='';});
+}
+
+function ajouterMouvementFirebase(){ ajouterMouvement(); }
+
 // Auth
 async function seConnecter(){
   var email = document.getElementById('login-email').value.trim();
@@ -525,7 +577,7 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
 
 <!-- LIVRAISONS -->
 <div id="page-livraisons" class="page">
-  <div class="topbar"><div class="topbar-title">Bons de livraison</div><div class="topbar-actions"><button class="btn btn-primary">+ Nouveau BL</button></div></div>
+  <div class="topbar"><div class="topbar-title">Bons de livraison</div><div class="topbar-actions"><button class="btn btn-primary" onclick="openModal('m-bl')">+ Nouveau BL</button></div></div>
   <div class="content">
     <div class="card">
       <table><thead><tr><th>N° BL</th><th>Client</th><th>Technicien</th><th>Zone</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead>
@@ -659,7 +711,7 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
 
 <!-- MAINTENANCE -->
 <div id="page-maintenance" class="page">
-  <div class="topbar"><div class="topbar-title">Contrats SAV &amp; Maintenance</div><div class="topbar-actions"><button class="btn btn-fb" onclick="fbSyncAll()">🔥 Sync</button><button class="btn btn-primary">+ Nouveau contrat</button></div></div>
+  <div class="topbar"><div class="topbar-title">Contrats SAV &amp; Maintenance</div><div class="topbar-actions"><button class="btn btn-fb" onclick="fbSyncAll()">🔥 Sync</button><button class="btn btn-primary" onclick="openModal('m-contrat')">+ Nouveau contrat</button></div></div>
   <div class="content">
     <div class="kpi-grid">
       <div class="kpi"><div class="kpi-l">Essentielle (15K)</div><div class="kpi-v">8</div><div class="kpi-s">120 000 FCFA/mois</div></div>
@@ -680,7 +732,7 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
 
 <!-- TRESORERIE -->
 <div id="page-tresorerie" class="page">
-  <div class="topbar"><div class="topbar-title">Trésorerie</div><div class="topbar-actions"><button class="btn btn-fb" onclick="fbSyncAll()">🔥 Sync Firebase</button></div></div>
+  <div class="topbar"><div class="topbar-title">Trésorerie</div><div class="topbar-actions"><button class="btn btn-fb" onclick="fbSyncAll()">🔥 Sync Firebase</button><button class="btn btn-primary" onclick="openModal('m-mouvement')">+ Nouveau mouvement</button></div></div>
   <div class="content">
     <div class="kpi-grid">
       <div class="kpi"><div class="kpi-l">Solde actuel</div><div class="kpi-v">680 000</div><div class="kpi-s neg">Seuil : 500 000</div></div>
@@ -1012,6 +1064,69 @@ service cloud.firestore {
     <div class="modal-ft">
       <button class="btn" onclick="closeModal('m-fournisseur')">Annuler</button>
       <button class="btn btn-primary" onclick="ajouterCommandeFourn()">✚ Enregistrer la commande</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL BL -->
+<div id="m-bl" class="overlay">
+  <div class="modal">
+    <div class="modal-hd">Nouveau bon de livraison <button class="xbtn" onclick="closeModal('m-bl')">×</button></div>
+    <div class="modal-bd">
+      <div class="grid2">
+        <div class="fg"><label>Client</label><select id="bl-client"><option>— Choisir —</option><option>Pharmacie Cocody</option><option>Sté COFIPA SA</option><option>Hôtel Ivotel</option><option>Résidence Les Bois</option><option>Supermarché Orca</option></select></div>
+        <div class="fg"><label>Depuis commande</label><select id="bl-cmd"><option>— Saisie manuelle —</option><option>C-2026-022 — Pharmacie Cocody</option><option>C-2026-021 — Résidence Palm</option><option>C-2026-020 — Hôtel Ivotel</option></select></div>
+        <div class="fg"><label>Technicien</label><select id="bl-tech"><option>Kodjo</option><option>Ulrich</option><option>Fabrice</option></select></div>
+        <div class="fg"><label>Zone</label><input type="text" id="bl-zone" placeholder="Ex: Cocody"></div>
+        <div class="fg"><label>Date prévue</label><input type="date" id="bl-date"></div>
+        <div class="fg"><label>Statut</label><select id="bl-statut"><option value="planifie">Planifié</option><option value="en_route">En route</option><option value="livre">Livré</option></select></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn" onclick="closeModal('m-bl')">Annuler</button>
+      <button class="btn btn-primary" onclick="ajouterBL()">✚ Créer le BL</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONTRAT SAV -->
+<div id="m-contrat" class="overlay">
+  <div class="modal">
+    <div class="modal-hd">Nouveau contrat SAV <button class="xbtn" onclick="closeModal('m-contrat')">×</button></div>
+    <div class="modal-bd">
+      <div class="grid2">
+        <div class="fg"><label>Client</label><select id="ct-client"><option>— Choisir —</option><option>Pharmacie Cocody</option><option>Sté COFIPA SA</option><option>Hôtel Ivotel</option><option>Résidence Les Bois</option><option>Supermarché Orca</option></select></div>
+        <div class="fg"><label>Formule</label><select id="ct-formule"><option value="essentielle">Essentielle — 15 000 FCFA/mois</option><option value="confort">Confort — 25 000 FCFA/mois</option><option value="premium">Premium — 50 000 FCFA/mois</option></select></div>
+        <div class="fg"><label>Date début</label><input type="date" id="ct-debut"></div>
+        <div class="fg"><label>Prochain RDV</label><input type="date" id="ct-rdv"></div>
+        <div class="fg span2"><label>Notes</label><input type="text" id="ct-notes" placeholder="Ex: Renouvellement annuel inclus"></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn" onclick="closeModal('m-contrat')">Annuler</button>
+      <button class="btn btn-fb" onclick="ajouterContratFirebase()">🔥 Sauver Firebase</button>
+      <button class="btn btn-primary" onclick="ajouterContrat()">✚ Créer le contrat</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MOUVEMENT TRESORERIE -->
+<div id="m-mouvement" class="overlay">
+  <div class="modal">
+    <div class="modal-hd">Nouveau mouvement de trésorerie <button class="xbtn" onclick="closeModal('m-mouvement')">×</button></div>
+    <div class="modal-bd">
+      <div class="grid2">
+        <div class="fg"><label>Type</label><select id="mv-type"><option value="entree">💚 Entrée (encaissement)</option><option value="sortie">🔴 Sortie (décaissement)</option></select></div>
+        <div class="fg"><label>Montant (FCFA)</label><input type="number" id="mv-montant" placeholder="Ex: 150000"></div>
+        <div class="fg span2"><label>Libellé</label><input type="text" id="mv-libelle" placeholder="Ex: Encaissement facture F-2026-051"></div>
+        <div class="fg"><label>Mode de paiement</label><select id="mv-moyen"><option>Orange Money</option><option>MTN MoMo</option><option>Wave</option><option>Virement bancaire</option><option>Espèces</option><option>Chèque</option></select></div>
+        <div class="fg"><label>Date</label><input type="date" id="mv-date"></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn" onclick="closeModal('m-mouvement')">Annuler</button>
+      <button class="btn btn-fb" onclick="ajouterMouvementFirebase()">🔥 Sauver Firebase</button>
+      <button class="btn btn-primary" onclick="ajouterMouvement()">✚ Enregistrer</button>
     </div>
   </div>
 </div>
