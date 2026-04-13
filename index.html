@@ -265,7 +265,7 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
     <button class="nb" onclick="go('fournisseurs',this);toggleMobNav()"><span class="ni">🏭</span> Fournisseurs</button>
     <div class="nav-lbl">Clients & SAV</div>
     <button class="nb" onclick="go('clients',this);toggleMobNav()"><span class="ni">👥</span> Clients</button>
-    <button class="nb" onclick="go('crm',this);toggleMobNav()"><span class="ni">🎯</span> CRM / Prospects</button>
+    <button class="nb" onclick="go('crm',this);renderCRM();toggleMobNav()"><span class="ni">🎯</span> CRM / Prospects</button>
     <button class="nb" onclick="go('maintenance',this);toggleMobNav()"><span class="ni">🔧</span> Contrats SAV</button>
     <div class="nav-lbl">Finance</div>
     <button class="nb" onclick="go('tresorerie',this);toggleMobNav()"><span class="ni">💰</span> Trésorerie</button>
@@ -298,7 +298,7 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
     <button class="nb" onclick="go('fournisseurs',this)"><span class="ni">🏭</span> Fournisseurs</button>
     <div class="nav-lbl">Clients & SAV</div>
     <button class="nb" onclick="go('clients',this)"><span class="ni">👥</span> Clients</button>
-    <button class="nb" onclick="go('crm',this)"><span class="ni">🎯</span> CRM / Prospects</button>
+    <button class="nb" onclick="go('crm',this);renderCRM()"><span class="ni">🎯</span> CRM / Prospects</button>
     <button class="nb" onclick="go('maintenance',this)"><span class="ni">🔧</span> Contrats SAV</button>
     <div class="nav-lbl">Finance</div>
     <button class="nb" onclick="go('tresorerie',this)"><span class="ni">💰</span> Trésorerie</button>
@@ -1083,8 +1083,11 @@ function marquerGagne(prospectId) {
 var _goOriginal = go;
 go = function(id, btn) {
   _goOriginal(id, btn);
-  if(id === 'crm') renderCRM();
+  if(id === 'crm') setTimeout(renderCRM, 50);
 };
+
+// Render CRM si on arrive directement dessus
+document.addEventListener('DOMContentLoaded', function(){
   var el = document.getElementById('dash-date');
   if(el) el.textContent = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',function(e){if(e.target===this)this.classList.remove('active');}));
@@ -1164,4 +1167,9 @@ function exportPDF(type,ref,client){
   }
   doc.setFontSize(7.5);doc.setTextColor(...GRAY);
   doc.text('OPPIN ERP v3 — '+new Date().toLocaleString('fr-FR'),W/2,290,{align:'center'});
-  var fname=lbl.toLowerCase().replace(/ /g,'-')
+  var fname=lbl.toLowerCase().replace(/ /g,'-')+'−'+ref+'.pdf';
+  doc.save(fname);
+}
+</script>
+</body>
+</html>
