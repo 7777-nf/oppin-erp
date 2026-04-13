@@ -1629,6 +1629,9 @@ go = function(id, btn) {
 };
 
 // ── STOCK ACTUEL DEPUIS FIREBASE ─────────────────────────────────────────────
+// Seules références actives INOVON — filtre les vieilles entrées Firebase
+var STOCK_REFS_ACTIVES = ['DS-2CE16D0T-BULLET','DS-2CE76D0T-DOME','DS-7204-4CH'];
+
 function loadStockActuel(){
   if(!window._db) return; // pas encore connecté, les valeurs statiques restent
   document.getElementById('stock-actuel-loading').style.display='block';
@@ -1646,7 +1649,9 @@ function loadStockActuel(){
     snap.forEach(function(docSnap){
       var ref = docSnap.id;
       var d = docSnap.data();
-      var qte = d.quantite !== undefined ? d.quantite : d.quantite;
+      // Ignore les références qui ne sont plus dans le stock actuel
+      if(!STOCK_REFS_ACTIVES.includes(ref)) return;
+      var qte = d.quantite !== undefined ? d.quantite : 0;
       var seuil = d.seuilAlerte || 0;
       var puAchat = d.puAchat || 0;
       var puVente = d.puVente || 0;
