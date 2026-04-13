@@ -700,49 +700,104 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
   <div class="content">
     <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
       <div class="kpi"><div class="kpi-l">Références</div><div class="kpi-v">3</div></div>
-      <div class="kpi"><div class="kpi-l">Alertes rupture</div><div class="kpi-v neg">0</div></div>
+      <div class="kpi"><div class="kpi-l">Alertes rupture</div><div class="kpi-v neg" id="stock-alertes">0</div></div>
       <div class="kpi"><div class="kpi-l">Valeur stock (achat)</div><div class="kpi-v">78 500</div><div class="kpi-s">FCFA</div></div>
     </div>
     <div class="card">
-      <table><thead><tr><th>Référence</th><th>Désignation</th><th>Qté</th><th>Seuil</th><th>Niveau</th><th>PU achat</th><th>PU vente</th><th>Marge</th><th>Sync</th></tr></thead>
-      <tbody>
-        <tr>
-          <td><span class="mono">DS-2CE16D0T-BULLET</span></td>
-          <td>Caméra bullet Hikvision</td>
-          <td><b>5</b></td>
-          <td>3</td>
-          <td><div class="sbar-wrap"><div class="sbar sbar-ok" style="width:70%"></div></div></td>
-          <td class="mono">6 500</td>
-          <td class="mono">25 000</td>
-          <td><span class="badge bg">+285%</span></td>
-          <td><button class="btn btn-sm btn-fb" onclick="fbSave('stock','DS-2CE16D0T-BULLET',{quantite:5,seuilAlerte:3,puAchat:6500,puVente:25000,designation:'Caméra bullet Hikvision'})">🔥</button></td>
-        </tr>
-        <tr>
-          <td><span class="mono">DS-2CE76D0T-DOME</span></td>
-          <td>Caméra dôme Hikvision</td>
-          <td><b>2</b></td>
-          <td>3</td>
-          <td><div class="sbar-wrap"><div class="sbar sbar-low" style="width:30%"></div></div></td>
-          <td class="mono">6 500</td>
-          <td class="mono">25 000</td>
-          <td><span class="badge bg">+285%</span></td>
-          <td><button class="btn btn-sm btn-fb" onclick="fbSave('stock','DS-2CE76D0T-DOME',{quantite:2,seuilAlerte:3,puAchat:6500,puVente:25000,designation:'Caméra dôme Hikvision'})">🔥</button></td>
-        </tr>
-        <tr>
-          <td><span class="mono">DS-7204-4CH</span></td>
-          <td>DVR 4 canaux Hikvision</td>
-          <td><b>1</b></td>
-          <td>2</td>
-          <td><div class="sbar-wrap"><div class="sbar sbar-low" style="width:15%"></div></div></td>
-          <td class="mono">21 000</td>
-          <td class="mono">40 000</td>
-          <td><span class="badge bg">+90%</span></td>
-          <td><button class="btn btn-sm btn-fb" onclick="fbSave('stock','DS-7204-4CH',{quantite:1,seuilAlerte:2,puAchat:21000,puVente:40000,designation:'DVR 4 canaux Hikvision'})">🔥</button></td>
-        </tr>
-      </tbody></table>
-    </div>
-    <div class="info-box yellow" style="margin-top:14px">
-      ⚠ <strong>Stock au 9 avril 2026</strong> — 2 produits sous le seuil d'alerte (Dôme : 2 unités, DVR : 1 unité). Penser à commander.
+      <div class="tabs">
+        <button class="tab active" onclick="stab(this,'stock-tab-actuel')">📦 Stock actuel</button>
+        <button class="tab" onclick="stab(this,'stock-tab-sorties');loadHistoriqueSorties()">📋 Historique des sorties</button>
+      </div>
+
+      <!-- STOCK ACTUEL -->
+      <div id="stock-tab-actuel" class="tab-pane active">
+        <table><thead><tr><th>Référence</th><th>Désignation</th><th>Qté</th><th>Seuil</th><th>Niveau</th><th>PU achat</th><th>PU vente</th><th>Marge</th><th>Sync</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="mono">DS-2CE16D0T-BULLET</span></td>
+            <td>Caméra bullet Hikvision</td>
+            <td><b>5</b></td>
+            <td>3</td>
+            <td><div class="sbar-wrap"><div class="sbar sbar-ok" style="width:70%"></div></div></td>
+            <td class="mono">6 500</td>
+            <td class="mono">25 000</td>
+            <td><span class="badge bg">+285%</span></td>
+            <td><button class="btn btn-sm btn-fb" onclick="fbSave('stock','DS-2CE16D0T-BULLET',{quantite:5,seuilAlerte:3,puAchat:6500,puVente:25000,designation:'Caméra bullet Hikvision'})">🔥</button></td>
+          </tr>
+          <tr>
+            <td><span class="mono">DS-2CE76D0T-DOME</span></td>
+            <td>Caméra dôme Hikvision</td>
+            <td><b>2</b></td>
+            <td>3</td>
+            <td><div class="sbar-wrap"><div class="sbar sbar-low" style="width:30%"></div></div></td>
+            <td class="mono">6 500</td>
+            <td class="mono">25 000</td>
+            <td><span class="badge bg">+285%</span></td>
+            <td><button class="btn btn-sm btn-fb" onclick="fbSave('stock','DS-2CE76D0T-DOME',{quantite:2,seuilAlerte:3,puAchat:6500,puVente:25000,designation:'Caméra dôme Hikvision'})">🔥</button></td>
+          </tr>
+          <tr>
+            <td><span class="mono">DS-7204-4CH</span></td>
+            <td>DVR 4 canaux Hikvision</td>
+            <td><b>1</b></td>
+            <td>2</td>
+            <td><div class="sbar-wrap"><div class="sbar sbar-low" style="width:15%"></div></div></td>
+            <td class="mono">21 000</td>
+            <td class="mono">40 000</td>
+            <td><span class="badge bg">+90%</span></td>
+            <td><button class="btn btn-sm btn-fb" onclick="fbSave('stock','DS-7204-4CH',{quantite:1,seuilAlerte:2,puAchat:21000,puVente:40000,designation:'DVR 4 canaux Hikvision'})">🔥</button></td>
+          </tr>
+        </tbody></table>
+        <div class="info-box yellow" style="margin:14px 14px 14px">
+          ⚠ <strong>Stock au 9 avril 2026</strong> — 2 produits sous le seuil d'alerte (Dôme : 2 unités, DVR : 1 unité). Penser à commander.
+        </div>
+      </div>
+
+      <!-- HISTORIQUE SORTIES -->
+      <div id="stock-tab-sorties" class="tab-pane">
+        <div style="padding:10px 14px 0;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="filtre-sortie-produit" onchange="filtrerSorties()" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif">
+              <option value="">Tous les produits</option>
+              <option value="DS-2CE16D0T-BULLET">Caméra bullet</option>
+              <option value="DS-2CE76D0T-DOME">Caméra dôme</option>
+              <option value="DS-7204-4CH">DVR 4 canaux</option>
+            </select>
+            <select id="filtre-sortie-motif" onchange="filtrerSorties()" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif">
+              <option value="">Tous les motifs</option>
+              <option value="installation">Installation</option>
+              <option value="remplacement">Remplacement SAV</option>
+              <option value="perte">Perte / Casse</option>
+              <option value="retour">Retour fournisseur</option>
+            </select>
+          </div>
+          <div id="sorties-stats" style="font-size:11.5px;color:var(--text2);font-family:'DM Mono',monospace"></div>
+        </div>
+        <div id="sorties-loading" style="padding:30px;text-align:center;color:var(--text2);font-size:12.5px;display:none">
+          <div style="font-size:22px;margin-bottom:8px">⏳</div>Chargement depuis Firebase…
+        </div>
+        <div id="sorties-empty" style="padding:30px;text-align:center;color:var(--text2);font-size:12.5px;display:none">
+          <div style="font-size:22px;margin-bottom:8px">📭</div>Aucune sortie enregistrée.
+        </div>
+        <div id="sorties-error" style="padding:14px;display:none">
+          <div class="info-box red" id="sorties-error-msg">Erreur de chargement.</div>
+        </div>
+        <table id="sorties-table" style="display:none">
+          <thead>
+            <tr>
+              <th>Référence</th>
+              <th>Date</th>
+              <th>Produit</th>
+              <th>Qté</th>
+              <th>Client / Dest.</th>
+              <th>Motif</th>
+              <th>BL</th>
+              <th>Stock avant</th>
+              <th>Stock après</th>
+            </tr>
+          </thead>
+          <tbody id="sorties-tbody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
@@ -1561,6 +1616,94 @@ go = function(id, btn) {
   _goOriginal(id, btn);
   if(id === 'crm') setTimeout(renderCRM, 50);
 };
+
+// ── HISTORIQUE SORTIES STOCK ──────────────────────────────────────────────────
+var _sortiesCache = [];
+
+function loadHistoriqueSorties(){
+  if(!window._db){
+    document.getElementById('sorties-error-msg').textContent = '⚠ Firebase non connecté. Clique sur "🔥 Sync" pour te connecter d\'abord.';
+    document.getElementById('sorties-error').style.display='block';
+    document.getElementById('sorties-loading').style.display='none';
+    return;
+  }
+  document.getElementById('sorties-loading').style.display='block';
+  document.getElementById('sorties-table').style.display='none';
+  document.getElementById('sorties-empty').style.display='none';
+  document.getElementById('sorties-error').style.display='none';
+
+  var col = window._collection(window._db, 'stock-sorties');
+
+  window._getDocs(col).then(function(snap){
+    document.getElementById('sorties-loading').style.display='none';
+    _sortiesCache = [];
+    snap.forEach(function(docSnap){
+      _sortiesCache.push(Object.assign({id:docSnap.id}, docSnap.data()));
+    });
+    // Tri par date décroissante côté client
+    _sortiesCache.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+    if(_sortiesCache.length === 0){
+      document.getElementById('sorties-empty').style.display='block';
+      return;
+    }
+    filtrerSorties();
+  }).catch(function(err){
+    document.getElementById('sorties-loading').style.display='none';
+    document.getElementById('sorties-error-msg').textContent = '❌ Erreur Firebase : '+err.message;
+    document.getElementById('sorties-error').style.display='block';
+  });
+}
+
+function filtrerSorties(){
+  var filtreProduit = document.getElementById('filtre-sortie-produit').value;
+  var filtreMotif = document.getElementById('filtre-sortie-motif').value;
+  var motifLabels = {installation:'Installation',remplacement:'Remplacement SAV',perte:'Perte / Casse',retour:'Retour fournisseur'};
+  var produitLabels = {'DS-2CE16D0T-BULLET':'Caméra bullet','DS-2CE76D0T-DOME':'Caméra dôme','DS-7204-4CH':'DVR 4 canaux'};
+
+  var data = _sortiesCache.filter(function(s){
+    if(filtreProduit && s.produit !== filtreProduit) return false;
+    if(filtreMotif && s.motif !== filtreMotif) return false;
+    return true;
+  });
+
+  var tbody = document.getElementById('sorties-tbody');
+  tbody.innerHTML = '';
+
+  if(data.length === 0){
+    document.getElementById('sorties-empty').style.display='block';
+    document.getElementById('sorties-table').style.display='none';
+    document.getElementById('sorties-stats').textContent='';
+    return;
+  }
+
+  document.getElementById('sorties-empty').style.display='none';
+  document.getElementById('sorties-table').style.display='table';
+
+  var totalQte = 0;
+  data.forEach(function(s){
+    totalQte += (s.qte||0);
+    var dateAff = s.date ? s.date.split('-').reverse().join('/') : '—';
+    var motifBadge = s.motif === 'installation' ? '<span class="badge bb">Installation</span>'
+      : s.motif === 'remplacement' ? '<span class="badge by">SAV</span>'
+      : s.motif === 'perte' ? '<span class="badge br">Perte</span>'
+      : '<span class="badge bgr">'+(s.motif||'—')+'</span>';
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><span class="mono" style="font-size:11px">'+s.id+'</span></td>'+
+      '<td>'+dateAff+'</td>'+
+      '<td><span class="mono" style="font-size:11px">'+(produitLabels[s.produit]||s.produit||'—')+'</span></td>'+
+      '<td><b style="color:var(--red)">−'+(s.qte||0)+'</b></td>'+
+      '<td>'+(s.client||'—')+'</td>'+
+      '<td>'+motifBadge+'</td>'+
+      '<td><span class="mono" style="font-size:11px">'+(s.bl||'—')+'</span></td>'+
+      '<td style="color:var(--text2)">'+(s.stockAvant!==undefined?s.stockAvant:'—')+'</td>'+
+      '<td><b>'+(s.stockApres!==undefined?s.stockApres:'—')+'</b></td>';
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('sorties-stats').textContent =
+    data.length + ' mouvement'+(data.length>1?'s':'') + ' — ' + totalQte + ' unité'+(totalQte>1?'s':'') + ' sortie'+(totalQte>1?'s':'');
+}
 
 // Render CRM si on arrive directement dessus
 document.addEventListener('DOMContentLoaded', function(){
