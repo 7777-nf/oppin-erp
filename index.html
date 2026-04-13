@@ -659,20 +659,50 @@ function saveDvFirebase(){ if(window._saveDvFirebase) window._saveDvFirebase(); 
   <div class="topbar"><div class="topbar-title">Stock INOVON</div><div class="topbar-actions"><button class="btn btn-fb" onclick="fbSyncAll()">🔥 Sync</button><button class="btn btn-primary" onclick="openModal('m-stock')">+ Entrée stock</button></div></div>
   <div class="content">
     <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
-      <div class="kpi"><div class="kpi-l">Références</div><div class="kpi-v">24</div></div>
-      <div class="kpi"><div class="kpi-l">Alertes rupture</div><div class="kpi-v neg">3</div></div>
-      <div class="kpi"><div class="kpi-l">Valeur totale</div><div class="kpi-v">8 420 000</div><div class="kpi-s">FCFA</div></div>
+      <div class="kpi"><div class="kpi-l">Références</div><div class="kpi-v">3</div></div>
+      <div class="kpi"><div class="kpi-l">Alertes rupture</div><div class="kpi-v neg">0</div></div>
+      <div class="kpi"><div class="kpi-l">Valeur stock (achat)</div><div class="kpi-v">78 500</div><div class="kpi-s">FCFA</div></div>
     </div>
     <div class="card">
-      <table><thead><tr><th>Référence</th><th>Catégorie</th><th>Qté</th><th>Seuil</th><th>Niveau</th><th>PU achat</th><th>PU vente</th><th>Sync</th></tr></thead>
+      <table><thead><tr><th>Référence</th><th>Désignation</th><th>Qté</th><th>Seuil</th><th>Niveau</th><th>PU achat</th><th>PU vente</th><th>Marge</th><th>Sync</th></tr></thead>
       <tbody>
-        <tr><td>DS-2CD2143G2-I</td><td>Caméra dôme 4MP</td><td><b>12</b></td><td>5</td><td><div class="sbar-wrap"><div class="sbar sbar-ok" style="width:80%"></div></div></td><td>45 000</td><td>85 000</td><td><button class="btn btn-sm btn-fb" onclick="fbSave('stock','DS-2CD2143G2-I',{quantite:12,seuilAlerte:5,puAchat:45000,puVente:85000})">🔥</button></td></tr>
-        <tr><td>DS-7208HUHI-K2</td><td>DVR 8 voies</td><td><b>6</b></td><td>3</td><td><div class="sbar-wrap"><div class="sbar sbar-ok" style="width:65%"></div></div></td><td>95 000</td><td>165 000</td><td><button class="btn btn-sm btn-fb" onclick="fbSave('stock','DS-7208HUHI-K2',{quantite:6,seuilAlerte:3,puAchat:95000,puVente:165000})">🔥</button></td></tr>
-        <tr><td>DS-2CD2T47G2-L</td><td>Caméra bullet</td><td><b style="color:var(--red)">4</b></td><td>5</td><td><div class="sbar-wrap"><div class="sbar sbar-low" style="width:28%"></div></div></td><td>52 000</td><td>95 000</td><td><button class="btn btn-sm btn-fb" onclick="fbSave('stock','DS-2CD2T47G2-L',{quantite:4,seuilAlerte:5,puAchat:52000,puVente:95000})">🔥</button></td></tr>
-        <tr><td>Câble coaxial RG6</td><td>Câblage</td><td><b style="color:var(--red)">3</b></td><td>10</td><td><div class="sbar-wrap"><div class="sbar sbar-low" style="width:12%"></div></div></td><td>28 000</td><td>35 000</td><td><button class="btn btn-sm btn-fb" onclick="fbSave('stock','cable-rg6',{quantite:3,seuilAlerte:10,puAchat:28000,puVente:35000})">🔥</button></td></tr>
-        <tr><td>DS-KD8003-IME1</td><td>Interphone vidéo</td><td><b>8</b></td><td>4</td><td><div class="sbar-wrap"><div class="sbar sbar-ok" style="width:70%"></div></div></td><td>78 000</td><td>135 000</td><td><button class="btn btn-sm btn-fb" onclick="fbSave('stock','DS-KD8003-IME1',{quantite:8,seuilAlerte:4,puAchat:78000,puVente:135000})">🔥</button></td></tr>
-        <tr><td>Alim. 12V/5A</td><td>Alimentation</td><td><b style="color:var(--red)">2</b></td><td>8</td><td><div class="sbar-wrap"><div class="sbar sbar-low" style="width:8%"></div></div></td><td>12 000</td><td>25 000</td><td><button class="btn btn-sm btn-fb" onclick="fbSave('stock','alim-12v5a',{quantite:2,seuilAlerte:8,puAchat:12000,puVente:25000})">🔥</button></td></tr>
+        <tr>
+          <td><span class="mono">DS-2CE16D0T-BULLET</span></td>
+          <td>Caméra bullet Hikvision</td>
+          <td><b>5</b></td>
+          <td>3</td>
+          <td><div class="sbar-wrap"><div class="sbar sbar-ok" style="width:70%"></div></div></td>
+          <td class="mono">6 500</td>
+          <td class="mono">25 000</td>
+          <td><span class="badge bg">+285%</span></td>
+          <td><button class="btn btn-sm btn-fb" onclick="fbSave('stock','DS-2CE16D0T-BULLET',{quantite:5,seuilAlerte:3,puAchat:6500,puVente:25000,designation:'Caméra bullet Hikvision'})">🔥</button></td>
+        </tr>
+        <tr>
+          <td><span class="mono">DS-2CE76D0T-DOME</span></td>
+          <td>Caméra dôme Hikvision</td>
+          <td><b>2</b></td>
+          <td>3</td>
+          <td><div class="sbar-wrap"><div class="sbar sbar-low" style="width:30%"></div></div></td>
+          <td class="mono">6 500</td>
+          <td class="mono">25 000</td>
+          <td><span class="badge bg">+285%</span></td>
+          <td><button class="btn btn-sm btn-fb" onclick="fbSave('stock','DS-2CE76D0T-DOME',{quantite:2,seuilAlerte:3,puAchat:6500,puVente:25000,designation:'Caméra dôme Hikvision'})">🔥</button></td>
+        </tr>
+        <tr>
+          <td><span class="mono">DS-7204-4CH</span></td>
+          <td>DVR 4 canaux Hikvision</td>
+          <td><b>1</b></td>
+          <td>2</td>
+          <td><div class="sbar-wrap"><div class="sbar sbar-low" style="width:15%"></div></div></td>
+          <td class="mono">21 000</td>
+          <td class="mono">40 000</td>
+          <td><span class="badge bg">+90%</span></td>
+          <td><button class="btn btn-sm btn-fb" onclick="fbSave('stock','DS-7204-4CH',{quantite:1,seuilAlerte:2,puAchat:21000,puVente:40000,designation:'DVR 4 canaux Hikvision'})">🔥</button></td>
+        </tr>
       </tbody></table>
+    </div>
+    <div class="info-box yellow" style="margin-top:14px">
+      ⚠ <strong>Stock au 9 avril 2026</strong> — 2 produits sous le seuil d'alerte (Dôme : 2 unités, DVR : 1 unité). Penser à commander.
     </div>
   </div>
 </div>
