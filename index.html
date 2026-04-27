@@ -657,7 +657,7 @@ function genererDevisExpressPDF(){
   doc.setTextColor(255,255,255);doc.setFontSize(16);doc.setFont('helvetica','bold');doc.text('INOVON',M+20,14);
   doc.setTextColor(200,200,200);doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text('OPPIN SARL',M+20,20);
   doc.setTextColor(200,200,200);doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text('Solutions S\u00e9curit\u00e9 \u00c9lectronique | Abidjan, C\u00f4te d\u2019Ivoire',M+22,22);
-  doc.setTextColor(180,180,180);doc.setFontSize(7.5);doc.text('+225 01 72 23 33 33  |  RCCM N° CI-ABJ-03-2022-B12-06061',M+22,28);
+  doc.setTextColor(180,180,180);doc.setFontSize(7.5);doc.text('+225 01 72 23 33 33  |  RCCM N° CI-ABJ-03-2022-B12-06061  |  CC N° 2244519E',M+22,28);
   // Badge DEVIS
   doc.setTextColor(...BORG);doc.setFontSize(22);doc.setFont('helvetica','bold');doc.text('DEVIS',W-M,17,{align:'right'});
   doc.setTextColor(160,160,160);doc.setFontSize(9);doc.setFont('helvetica','normal');doc.text(ref,W-M,25,{align:'right'});
@@ -2029,7 +2029,7 @@ function exportPDF(type,ref,client){
   doc.setTextColor(...WHITE);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('N° '+ref,W-M-2,badgeY+5,{align:'right'});
   doc.setFillColor(...BLUE);doc.rect(0,HDR,W,7,'F');
   doc.setTextColor(230,230,230);doc.setFontSize(7);doc.setFont('helvetica','normal');
-  doc.text('Abidjan, Côte d’Ivoire   |   +225 01 72 23 33 33   |   RCCM N° CI-ABJ-03-2022-B12-06061',M,HDR+4.5);
+  doc.text(‘Abidjan, Côte d’Ivoire   |   +225 01 72 23 33 33   |   RCCM N° CI-ABJ-03-2022-B12-06061   |   CC N° 2244519E’,M,HDR+4.5);
 
   // ── INFO BAND ────────────────────────────────────────────────────────────
   var y=HDR+9;
