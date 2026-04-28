@@ -650,21 +650,10 @@ function genererDevisExpressPDF(){
   var doc=new JPDF({unit:'mm',format:'a4'}),W=210,M=18;
   var DARK=[17,17,17],BORG=[139,26,46],GRAY=[110,110,108],LG=[245,232,235];
   // ── EN-TÊTE PDF ─────────────────────────────────────────────────────────
-  doc.setFillColor(...DARK);doc.rect(0,0,W,38,'F');
-  doc.setFillColor(...BORG);doc.rect(0,0,5,38,'F');
-  // Logo INOVON vectoriel
-  drawInovonLogo(doc, M+1, 4, 14);
-  doc.setTextColor(200,200,200);doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text('OPPIN SARL',M+20,14);
-  doc.setTextColor(180,180,180);doc.setFontSize(7.5);doc.text('+225 01 72 23 33 33',M+20,20);
-  doc.setTextColor(180,180,180);doc.setFontSize(7.5);doc.text('+225 01 72 23 33 33  |  RCCM N° CI-ABJ-03-2022-B12-06061  |  CC N° 2244519E',M+22,28);
-  // Badge DEVIS
-  doc.setTextColor(...BORG);doc.setFontSize(22);doc.setFont('helvetica','bold');doc.text('DEVIS',W-M,17,{align:'right'});
-  doc.setTextColor(160,160,160);doc.setFontSize(9);doc.setFont('helvetica','normal');doc.text(ref,W-M,25,{align:'right'});
-  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(200,200,200);// removed redundant sub-text
-  //doc.text('Solutions Sécurité Électronique — OPPIN SARL',M,21);
-  // (DEVIS badge déjà dans en-tête)
+  // ── HEADER ───────────────────────────────────────────────────────────────
+  var HDR_H = drawOppinHeader(doc, 'DEVIS', ref, W, M);
   // Infos
-  var y=44;
+  var y = HDR_H + 6;
   doc.setFillColor(...LG);doc.rect(M,y,W-2*M,22,'F');
   doc.setTextColor(...BORG);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('CLIENT',M+3,y+5);
   doc.setTextColor(...DARK);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text(client,M+3,y+11);
@@ -2012,6 +2001,51 @@ function drawInovonLogo(doc, x, y, size) {
   }
 }
 
+function drawOppinHeader(doc, lbl, ref, W, M) {
+  var HDR = 36;  // hauteur section bleue principale
+  var BAR = 9;   // hauteur bande basse noire
+  var LP  = 60;  // largeur panneau gauche
+  // Couleurs
+  var HBLUE  = [25, 118, 210];  // bleu clair (fond principal)
+  var HDBLUE = [14,  76, 140];  // bleu foncé (panneau gauche)
+  var HNAVY  = [8,   28,  70];  // bleu nuit (bande basse)
+  var WHITE  = [255,255,255];
+  var DTITLE = [6,  32,  80];   // bleu foncé pour DEVIS / FACTURE
+  // ── Fond principal bleu
+  doc.setFillColor(...HBLUE);  doc.rect(0, 0, W, HDR, 'F');
+  // ── Panneau gauche bleu foncé
+  doc.setFillColor(...HDBLUE); doc.rect(0, 0, LP, HDR, 'F');
+  // ── Logo INOVON (centré dans panneau gauche)
+  try { doc.addImage(window.INOVON_LOGO, 'PNG', LP/2 - 11, 2, 20, 24); } catch(e) {}
+  // ── "INOVON" sous le logo
+  doc.setTextColor(...WHITE);
+  doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+  doc.text('INOVON', LP/2, 30, {align: 'center'});
+  // ── "SECURITE ELECTRONIQUE" en haut à droite
+  doc.setTextColor(...WHITE);
+  doc.setFontSize(16); doc.setFont('helvetica', 'bold');
+  doc.text('SECURITE ELECTRONIQUE', LP + 6, 14);
+  // ── Type de document (DEVIS / FACTURE)
+  doc.setTextColor(...DTITLE);
+  doc.setFontSize(20); doc.setFont('helvetica', 'bold');
+  doc.text(lbl, LP + 6, 30);
+  // ── Numéro
+  doc.setTextColor(...DTITLE);
+  doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+  doc.text('N° ' + ref, LP + 65, 30);
+  // ── Bande basse noire
+  doc.setFillColor(...HNAVY); doc.rect(0, HDR, W, BAR, 'F');
+  // ── "OPPIN SARL" à gauche
+  doc.setTextColor(...WHITE);
+  doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+  doc.text('OPPIN SARL', 8, HDR + 6);
+  // ── Infos de contact à droite
+  doc.setTextColor(210, 225, 245);
+  doc.setFontSize(6.5); doc.setFont('helvetica', 'normal');
+  doc.text('RCCM N° CI-ABJ-03-2022-B12-06061 | CC N° 2244519E | Av. 17 Rue 24 Treichville | +225 01 72 23 33 33', W - 6, HDR + 6, {align: 'right'});
+  return HDR + BAR; // retourne hauteur totale
+}
+
 
 function exportPDF(type,ref,client){
   var JPDF=window.jspdf?window.jspdf.jsPDF:(typeof jsPDF!=='undefined'?jsPDF:null);
@@ -2022,20 +2056,8 @@ function exportPDF(type,ref,client){
   var labels={facture:'FACTURE',devis:'DEVIS',bl:'BON DE LIVRAISON',contrat:'CONTRAT SAV'};
   var lbl=labels[type]||'DOCUMENT';
 
-  // ── HEADER (34mm, colonnes séparées sans chevauchement) ────────────────
-  var HDR=34;
-  doc.setFillColor(...NAVY);doc.rect(0,0,W,HDR,'F');
-  doc.setFillColor(...BLUE);doc.rect(0,0,72,HDR,'F');
-  try{doc.addImage(INOVON_LOGO,'PNG',M-2,2,18,24);}catch(e){}
-  doc.setTextColor(200,225,255);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text('OPPIN SARL',M+20,12);
-  doc.setTextColor(...LBLUE);doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.text('DOCUMENT COMMERCIAL',W-M,8,{align:'right'});
-  doc.setTextColor(...WHITE);doc.setFontSize(22);doc.setFont('helvetica','bold');doc.text(lbl,W-M,21,{align:'right'});
-  var badgeW=54,badgeH=7,badgeX=W-M-badgeW,badgeY=HDR-9;
-  doc.setFillColor(...LBLUE);doc.rect(badgeX,badgeY,badgeW,badgeH,'F');
-  doc.setTextColor(...WHITE);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text('N° '+ref,W-M-2,badgeY+5,{align:'right'});
-  doc.setFillColor(...BLUE);doc.rect(0,HDR,W,7,'F');
-  doc.setTextColor(230,230,230);doc.setFontSize(7);doc.setFont('helvetica','normal');
-  doc.text('Abidjan, Côte d\'Ivoire   |   +225 01 72 23 33 33   |   RCCM N° CI-ABJ-03-2022-B12-06061   |   CC N° 2244519E',M,HDR+4.5);
+  // ── HEADER ───────────────────────────────────────────────────────────────
+  var HDR = drawOppinHeader(doc, lbl, ref, W, M);
 
   // ── INFO BAND ────────────────────────────────────────────────────────────
   var y=HDR+9;
@@ -2154,4 +2176,3 @@ function exportPDF(type,ref,client){
 }
 </script>
 </body>
-                                                                                                                                                                                                                                                                                                                                                                                                                           
