@@ -654,9 +654,8 @@ function genererDevisExpressPDF(){
   doc.setFillColor(...BORG);doc.rect(0,0,5,38,'F');
   // Logo INOVON vectoriel
   drawInovonLogo(doc, M+1, 4, 14);
-  doc.setTextColor(255,255,255);doc.setFontSize(16);doc.setFont('helvetica','bold');doc.text('INOVON',M+20,14);
-  doc.setTextColor(200,200,200);doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text('OPPIN SARL',M+20,20);
-  doc.setTextColor(200,200,200);doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text('Solutions S\u00e9curit\u00e9 \u00c9lectronique | Abidjan, C\u00f4te d\u2019Ivoire',M+22,22);
+  doc.setTextColor(200,200,200);doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text('OPPIN SARL',M+20,14);
+  doc.setTextColor(180,180,180);doc.setFontSize(7.5);doc.text('+225 01 72 23 33 33',M+20,20);
   doc.setTextColor(180,180,180);doc.setFontSize(7.5);doc.text('+225 01 72 23 33 33  |  RCCM N° CI-ABJ-03-2022-B12-06061  |  CC N° 2244519E',M+22,28);
   // Badge DEVIS
   doc.setTextColor(...BORG);doc.setFontSize(22);doc.setFont('helvetica','bold');doc.text('DEVIS',W-M,17,{align:'right'});
@@ -2028,9 +2027,7 @@ function exportPDF(type,ref,client){
   doc.setFillColor(...NAVY);doc.rect(0,0,W,HDR,'F');
   doc.setFillColor(...BLUE);doc.rect(0,0,72,HDR,'F');
   try{doc.addImage(INOVON_LOGO,'PNG',M-2,2,18,24);}catch(e){}
-  doc.setTextColor(...WHITE);doc.setFontSize(12);doc.setFont('helvetica','bold');doc.text('INOVON',M+20,12);
-  doc.setTextColor(200,225,255);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text('OPPIN SARL',M+20,18);
-  doc.setTextColor(...LBLUE);doc.setFontSize(6.5);doc.text('Sécurité Électronique',M+20,23);
+  doc.setTextColor(200,225,255);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text('OPPIN SARL',M+20,12);
   doc.setTextColor(...LBLUE);doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.text('DOCUMENT COMMERCIAL',W-M,8,{align:'right'});
   doc.setTextColor(...WHITE);doc.setFontSize(22);doc.setFont('helvetica','bold');doc.text(lbl,W-M,21,{align:'right'});
   var badgeW=54,badgeH=7,badgeX=W-M-badgeW,badgeY=HDR-9;
@@ -2157,3 +2154,4 @@ function exportPDF(type,ref,client){
 }
 </script>
 </body>
+                                                                                                                                                                                                                                                                                                                                                                                                                           
