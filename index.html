@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -2003,6 +2004,15 @@ window._fbLoadDevis=function(){
 <!-- PDF EXPORT -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
+function drawInovonLogo(doc, x, y, size) {
+  try {
+    if (window.INOVON_LOGO) {
+      doc.addImage(window.INOVON_LOGO, 'PNG', x, y, size, size);
+    }
+  } catch(e) {
+    console.warn('drawInovonLogo:', e);
+  }
+}
 
 
 function exportPDF(type,ref,client){
