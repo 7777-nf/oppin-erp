@@ -2017,10 +2017,6 @@ function drawOppinHeader(doc, lbl, ref, W, M) {
   doc.setFillColor(...HDBLUE); doc.rect(0, 0, LP, HDR, 'F');
   // ── Logo INOVON (centré dans panneau gauche)
   try { doc.addImage(window.INOVON_LOGO, 'PNG', LP/2 - 11, 2, 20, 24); } catch(e) {}
-  // ── "INOVON" sous le logo
-  doc.setTextColor(...WHITE);
-  doc.setFontSize(9); doc.setFont('helvetica', 'bold');
-  doc.text('INOVON', LP/2, 30, {align: 'center'});
   // ── "SECURITE ELECTRONIQUE" en haut à droite
   doc.setTextColor(...WHITE);
   doc.setFontSize(16); doc.setFont('helvetica', 'bold');
@@ -2176,3 +2172,4 @@ function exportPDF(type,ref,client){
 }
 </script>
 </body>
+                                                                                                                                                                           
