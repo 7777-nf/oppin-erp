@@ -1,3 +1,6 @@
+HTTP 200 
+Content-Type: application/octet-stream
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -410,33 +413,21 @@ function selectUser(mode){
   if(mode==='kodjo'){
     btnKodjo.style.cssText='background:var(--bordeaux);border:2px solid var(--bordeaux);color:#fff;padding:12px 8px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;font-family:DM Sans,sans-serif;transition:all .2s';
     btnAdmin.style.cssText='background:transparent;border:2px solid rgba(255,255,255,.15);color:rgba(255,255,255,.5);padding:12px 8px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;font-family:DM Sans,sans-serif;transition:all .2s';
-    blocAdmin.style.display='none';blocKodjo.style.display='block';
-    document.getElementById('login-pin').focus();
+    blocAdmin.style.display='block';blocKodjo.style.display='none';
+    document.getElementById('login-email').placeholder='kodjo@oppin.ci';
+    document.getElementById('login-email').focus();
   } else {
     btnAdmin.style.cssText='background:var(--bordeaux);border:2px solid var(--bordeaux);color:#fff;padding:12px 8px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;font-family:DM Sans,sans-serif;transition:all .2s';
     btnKodjo.style.cssText='background:transparent;border:2px solid rgba(255,255,255,.15);color:rgba(255,255,255,.5);padding:12px 8px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;font-family:DM Sans,sans-serif;transition:all .2s';
     blocAdmin.style.display='block';blocKodjo.style.display='none';
+    document.getElementById('login-email').placeholder='admin@oppin.ci';
     document.getElementById('login-email').focus();
   }
 }
 function seConnecter(){
   var err=document.getElementById('login-error'),btn=document.getElementById('login-btn'),loading=document.getElementById('login-loading');
   err.style.display='none';
-  if(_loginMode==='kodjo'){
-    var pin=(document.getElementById('login-pin').value||'').trim();
-    if(!pin){err.textContent='Saisissez votre code PIN.';err.style.display='block';return;}
-    // PIN Kodjo — modifiable ici
-    if(pin==='1234'){
-      document.getElementById('login-screen').classList.add('hidden');
-      applyRole('kodjo');
-      var fbtxt=document.getElementById('fbtxt');if(fbtxt)fbtxt.textContent='Kodjo — Devis uniquement';
-      toast('👋 Bienvenue Kodjo','#1A73B8');
-    } else {
-      err.textContent='Code PIN incorrect.';err.style.display='block';
-    }
-    return;
-  }
-  // Connexion CEO via Firebase
+  // Connexion via Firebase (CEO + Kodjo — rôle détecté depuis l'email)
   var email=document.getElementById('login-email').value.trim(),pwd=document.getElementById('login-pwd').value;
   if(!email||!pwd){err.textContent='Remplis tous les champs.';err.style.display='block';return;}
   btn.disabled=true;loading.style.display='block';
@@ -701,9 +692,32 @@ function genererDevisExpressPDF(){
   doc.save('devis-'+ref+'-'+client.replace(/\s+/g,'-').toLowerCase()+'.pdf');
   toast('✅ PDF généré — '+ref,'#3B6D11');
   // Sauvegarder en Firestore
-  var devisData={ref,client,tel,adresse,lignes:sel,ht,notes,date:new Date().toISOString().split('T')[0],statut:'envoyé',source:'devis-express'};
+  var devisData={ref,client,tel,adresse,lignes:sel,ht,notes,date:new Date().toISOString().split('T')[0],statut:'envoyé',source:'devis-express',par:_currentRole||'admin'};
   if(window._fbReady)fbSave('devis',ref,devisData);
   _dernierDevis=devisData;
+  // ── ALERTE WhatsApp CEO si devis généré par Kodjo ────────────────────────
+  if(_currentRole==='kodjo'){
+    var lignesTxt=sel.map(s=>s.qty+'x '+s.name+' → '+fCFA(s.pu*s.qty)).join('\n');
+    var msg='🔔 *NOUVEAU DEVIS KODJO*\n\n'
+      +'📋 Réf : *'+ref+'*\n'
+      +'👤 Client : *'+client+(adresse?' — '+adresse:'')+'*\n'
+      +(tel?'📞 Tél : '+tel+'\n':'')
+      +'\n📦 *Produits :*\n'+lignesTxt+'\n'
+      +'\n💰 *Total HT : '+fCFA(ht)+'*\n'
+      +'🕐 '+new Date().toLocaleString('fr-FR')+'\n'
+      +'\n_Généré via OPPIN ERP — Devis Express_';
+    var ceoNum='2250140503030'; // Numéro CEO OPPIN
+    var waUrl='https://api.whatsapp.com/send?phone='+ceoNum+'&text='+encodeURIComponent(msg);
+    window.open(waUrl,'_blank');
+    toast('📱 Alerte WhatsApp envoyée au CEO','#25D366');
+    // Aussi envoyer via webhook n8n si configuré
+    var n8nUrl=(document.getElementById('n8n-url')||{}).value||'';
+    if(n8nUrl){
+      fetch(n8nUrl,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({source:'OPPIN-ERP',type:'devis_kodjo',timestamp:new Date().toISOString(),devis:{ref,client,tel,adresse,ht,lignes:sel}}),
+        mode:'no-cors'}).catch(()=>{});
+    }
+  }
 }
 function dexAddCustom(){
   var nom=(document.getElementById('dex-custom-nom').value||'').trim();
