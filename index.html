@@ -695,21 +695,24 @@ function genererDevisExpressPDF(){
   var devisData={ref,client,tel,adresse,lignes:sel,ht,notes,date:new Date().toISOString().split('T')[0],statut:'envoyé',source:'devis-express',par:_currentRole||'admin'};
   if(window._fbReady)fbSave('devis',ref,devisData);
   _dernierDevis=devisData;
-  // ── ALERTE WhatsApp CEO si devis généré par Kodjo ────────────────────────
+  // ── ALERTE TELEGRAM CEO si devis généré par Kodjo ───────────────────────
   if(_currentRole==='kodjo'){
     var lignesTxt=sel.map(s=>s.qty+'x '+s.name+' → '+fCFA(s.pu*s.qty)).join('\n');
-    var msg='🔔 *NOUVEAU DEVIS KODJO*\n\n'
-      +'📋 Réf : *'+ref+'*\n'
-      +'👤 Client : *'+client+(adresse?' — '+adresse:'')+'*\n'
+    var msg='🔔 <b>NOUVEAU DEVIS KODJO</b>\n\n'
+      +'📋 Réf : <b>'+ref+'</b>\n'
+      +'👤 Client : <b>'+client+(adresse?' — '+adresse:'')+'</b>\n'
       +(tel?'📞 Tél : '+tel+'\n':'')
-      +'\n📦 *Produits :*\n'+lignesTxt+'\n'
-      +'\n💰 *Total HT : '+fCFA(ht)+'*\n'
+      +'\n📦 <b>Produits :</b>\n'+lignesTxt+'\n'
+      +'\n💰 <b>Total HT : '+fCFA(ht)+'</b>\n'
       +'🕐 '+new Date().toLocaleString('fr-FR')+'\n'
-      +'\n_Généré via OPPIN ERP — Devis Express_';
-    var ceoNum='2250140503030'; // Numéro CEO OPPIN
-    var waUrl='https://api.whatsapp.com/send?phone='+ceoNum+'&text='+encodeURIComponent(msg);
-    window.open(waUrl,'_blank');
-    toast('📱 Alerte WhatsApp envoyée au CEO','#25D366');
+      +'\n<i>Généré via OPPIN ERP — Devis Express</i>';
+    // Envoi Telegram Bot
+    fetch('https://api.telegram.org/bot8609518501:AAEbTS3pXNb-ZZWzsziv0KseTSynfHQmgCg/sendMessage',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({chat_id:7711031858,text:msg,parse_mode:'HTML'})
+    }).then(function(){toast('📱 Alerte Telegram envoyée au CEO','#229ED9');})
+      .catch(function(){toast('⚠ Alerte Telegram échouée','#A32D2D');});
     // Aussi envoyer via webhook n8n si configuré
     var n8nUrl=(document.getElementById('n8n-url')||{}).value||'';
     if(n8nUrl){
