@@ -1152,9 +1152,9 @@ window._fbLoadDevis=function(){
     <div class="card">
       <table><thead><tr><th>Référence</th><th>Client</th><th>Objet</th><th>TTC (FCFA)</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead>
       <tbody id="dv-tbody">
-        <tr><td>D-2026-031</td><td>Pharmacie Cocody</td><td>Anti-Fraude 4 cam.</td><td>1 003 000</td><td>07/04/2026</td><td><span class="badge bb">Envoyé</span></td><td><div class="ra"><button class="btn btn-sm btn-wa" onclick="whatsappRelance('Pharmacie Cocody',1003000,'D-2026-031',3)">📱 Relancer</button><button class="btn btn-sm btn-pdf" onclick="exportPDF('devis','D-2026-031','Pharmacie Cocody')">⬇ PDF</button><button class="btn btn-sm btn-fb" onclick="fbSave('devis','D-2026-031',{client:'Pharmacie Cocody',ttc:1003000,statut:'envoye'})">🔥</button></div></td></tr>
-        <tr><td>D-2026-030</td><td>Supermarché Orca</td><td>Surveillance périmétrique</td><td>3 245 000</td><td>05/04/2026</td><td><span class="badge by">Brouillon</span></td><td><div class="ra"><button class="btn btn-sm btn-pdf" onclick="exportPDF('devis','D-2026-030','Supermarché Orca')">⬇ PDF</button><button class="btn btn-sm btn-fb" onclick="fbSave('devis','D-2026-030',{client:'Supermarché Orca',ttc:3245000,statut:'brouillon'})">🔥</button></div></td></tr>
-        <tr><td>D-2026-028</td><td>Résidence Palm</td><td>Pack Home Watch 8 cam.</td><td>2 124 000</td><td>01/04/2026</td><td><span class="badge bg">Accepté</span></td><td><div class="ra"><button class="btn btn-sm btn-pdf" onclick="exportPDF('devis','D-2026-028','Résidence Palm')">⬇ PDF</button><button class="btn btn-sm btn-fb" onclick="fbSave('devis','D-2026-028',{client:'Résidence Palm',ttc:2124000,statut:'accepte'})">🔥</button></div></td></tr>
+        <tr><td>D-2026-031</td><td>Pharmacie Cocody</td><td>Anti-Fraude 4 cam.</td><td>1 003 000</td><td>07/04/2026</td><td><span class="badge bb">Envoyé</span></td><td><div class="ra"><button class="btn btn-sm btn-wa" onclick="whatsappRelance('Pharmacie Cocody',1003000,'D-2026-031',3)">📱 Relancer</button><button class="btn btn-sm btn-pdf" onclick="exportPDF('devis','D-2026-031','Pharmacie Cocody',1003000)">⬇ PDF</button><button class="btn btn-sm btn-fb" onclick="fbSave('devis','D-2026-031',{client:'Pharmacie Cocody',ttc:1003000,statut:'envoye'})">🔥</button></div></td></tr>
+        <tr><td>D-2026-030</td><td>Supermarché Orca</td><td>Surveillance périmétrique</td><td>3 245 000</td><td>05/04/2026</td><td><span class="badge by">Brouillon</span></td><td><div class="ra"><button class="btn btn-sm btn-pdf" onclick="exportPDF('devis','D-2026-030','Supermarché Orca',3245000)">⬇ PDF</button><button class="btn btn-sm btn-fb" onclick="fbSave('devis','D-2026-030',{client:'Supermarché Orca',ttc:3245000,statut:'brouillon'})">🔥</button></div></td></tr>
+        <tr><td>D-2026-028</td><td>Résidence Palm</td><td>Pack Home Watch 8 cam.</td><td>2 124 000</td><td>01/04/2026</td><td><span class="badge bg">Accepté</span></td><td><div class="ra"><button class="btn btn-sm btn-pdf" onclick="exportPDF('devis','D-2026-028','Résidence Palm',2124000)">⬇ PDF</button><button class="btn btn-sm btn-fb" onclick="fbSave('devis','D-2026-028',{client:'Résidence Palm',ttc:2124000,statut:'accepte'})">🔥</button></div></td></tr>
       </tbody></table>
     </div>
   </div>
@@ -2064,7 +2064,7 @@ function drawOppinHeader(doc, lbl, ref, W, M) {
 }
 
 
-function exportPDF(type,ref,client){
+function exportPDF(type,ref,client,ttc){
   var JPDF=window.jspdf?window.jspdf.jsPDF:(typeof jsPDF!=='undefined'?jsPDF:null);
   if(!JPDF){toast('⏳ jsPDF chargement, réessaie dans 2s','#185FA5');return;}
   var doc=new JPDF({unit:'mm',format:'a4'}),W=210,M=18;
@@ -2195,6 +2195,7 @@ function exportPDF(type,ref,client){
     var msgTg='🔔 <b>NOUVEAU DEVIS KODJO</b>\n\n'
       +'📋 Réf : <b>'+ref+'</b>\n'
       +'👤 Client : <b>'+client+'</b>\n'
+      +(ttc?'💰 Montant : <b>'+fCFA(ttc)+'</b>\n':'')
       +'🕐 '+new Date().toLocaleString('fr-FR')+'\n'
       +'\n<i>Généré via OPPIN ERP — Section Devis</i>';
     fetch('https://api.telegram.org/bot8609518501:AAEbTS3pXNb-ZZWzsziv0KseTSynfHQmgCg/sendMessage',{
