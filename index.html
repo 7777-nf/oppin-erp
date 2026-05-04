@@ -2205,6 +2205,7 @@ function exportPDF(type,ref,client,ttc){
     });
     if(rows.length===0){rows=[['(aucune désignation saisie)','—','—','—',0]];}
   } else if(type==='facture'){
+    var factMoyen=(document.getElementById('fact-moyen')||{}).value||'Orange Money';
     var factLines=document.querySelectorAll('#fact-lines .dv-line');
     factLines.forEach(function(line){
       var desig=(line.querySelector('.desig')||{}).value||'';
@@ -2271,13 +2272,13 @@ function exportPDF(type,ref,client,ttc){
     doc.setTextColor(...WHITE);doc.setFont('helvetica','bold');doc.setFontSize(7.5);
     doc.text('MOYENS DE PAIEMENT',M+3,accY+5);
     doc.setTextColor(220,255,235);doc.setFont('helvetica','normal');doc.setFontSize(7);
-    doc.text('Orange Money',M+3,accY+14);
-    doc.setTextColor(...WHITE);doc.setFont('helvetica','bold');doc.setFontSize(8.5);
-    doc.text('+225 07 72 23 33 33',M+3,accY+20);
+    doc.text('Mode de reglement :',M+3,accY+13);
+    doc.setTextColor(...WHITE);doc.setFont('helvetica','bold');doc.setFontSize(10);
+    doc.text(factMoyen,M+3,accY+21);
     doc.setTextColor(220,255,235);doc.setFont('helvetica','normal');doc.setFontSize(7);
-    doc.text('Wave  |  MTN MoMo  |  Virement bancaire',M+3,accY+27);
+    doc.text('Orange Money | Wave | MTN MoMo | Virement',M+3,accY+28);
     doc.setTextColor(180,240,200);doc.setFontSize(6.5);
-    doc.text('Ref. paiement : '+ref+'  —  Client : '+client.substring(0,25),M+3,accY+34);
+    doc.text('Ref. : '+ref+'  —  '+client.substring(0,28),M+3,accY+35);
     // ── MENTIONS LEGALES (droite) ───────────────────────────────────────
     doc.setFillColor(248,250,253);doc.rect(rx,accY,halfW,38,'F');
     doc.setFillColor(...BLUE);doc.rect(rx,accY,halfW,7,'F');
