@@ -262,6 +262,8 @@ function addDvLine(){
 function saveDv(){
   var client=(document.getElementById('dv-client').value||'').trim();
   var objet=(document.getElementById('dv-objet').value||'').trim();
+  var tel=(document.getElementById('dv-tel')||{}).value||'';
+  var adresse=(document.getElementById('dv-adresse')||{}).value||'';
   if(!client){toast('⚠ Saisissez un client','#A32D2D');return;}
   var lines=document.querySelectorAll('#dv-lines .dv-line');
   var hasLine=false;
@@ -292,7 +294,7 @@ function saveDv(){
       +'<td><div class="ra">'
       +'<button class="btn btn-sm btn-wa" onclick="whatsappRelance(\''+cEsc+'\','+ttc+',\''+ref+'\',0)">📱 Relancer</button>'
       +'<button class="btn btn-sm btn-pdf" onclick="exportPDF(\'devis\',\''+ref+'\',\''+cEsc+'\','+ttc+')">⬇ PDF</button>'
-      +'<button class="btn btn-sm btn-fb" onclick="fbSave(\'devis\',\''+ref+'\',{client:\''+cEsc+'\',objet:\''+oEsc+'\',ttc:'+ttc+',statut:\'brouillon\'})">🔥</button>'
+      +'<button class="btn btn-sm btn-fb" onclick="fbSave(\'devis\',\''+ref+'\',{client:\''+cEsc+'\',objet:\''+oEsc+'\',ttc:'+ttc+',tel:\''+tel+'\',adresse:\''+adresse+'\',statut:\'brouillon\'})">🔥</button>'
       +'</div></td>';
     tbody.insertBefore(tr,tbody.firstChild);
   }
@@ -2078,11 +2080,17 @@ function exportPDF(type,ref,client,ttc){
 
   // ── INFO BAND ────────────────────────────────────────────────────────────
   var y=HDR+9;
-  doc.setFillColor(247,249,252);doc.rect(M,y,tblWF(),18,'F');
+  // Lire tel/adresse depuis le modal (valeurs persistent même modal fermé)
+  var dvTel=(document.getElementById('dv-tel')||{}).value||'';
+  var dvAdresse=(document.getElementById('dv-adresse')||{}).value||'';
+  var bandH=(dvTel||dvAdresse)?28:22;
+  doc.setFillColor(247,249,252);doc.rect(M,y,tblWF(),bandH,'F');
   function tblWF(){return W-2*M;}
   // Client block
   doc.setTextColor(...BLUE);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text('CLIENT',M+3,y+5);
   doc.setTextColor(...NAVY);doc.setFontSize(11);doc.setFont('helvetica','bold');doc.text(client,M+3,y+10.5);
+  if(dvTel){doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...GRAY);doc.text('📞 '+dvTel,M+3,y+17);}
+  if(dvAdresse){doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...GRAY);doc.text('📍 '+dvAdresse,M+3,dvTel?y+22:y+17);}
   // Right info block
   var today=new Date().toLocaleDateString('fr-FR');
   var exp=new Date();exp.setDate(exp.getDate()+30);var expDate=exp.toLocaleDateString('fr-FR');
@@ -2091,9 +2099,9 @@ function exportPDF(type,ref,client,ttc){
   doc.setTextColor(...BLUE);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text('VALIDITÉ',W-M-60,y+15);
   doc.setTextColor(...NAVY);doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text(expDate+' (30j)',W-M-60,y+20);
   // Objet
-  if(type==='devis'){var objEl=document.getElementById('dv-objet');var objTxt=objEl&&objEl.value?objEl.value:'';if(objTxt){doc.setTextColor(100,100,100);doc.setFontSize(8.5);doc.setFont('helvetica','normal');doc.text(objTxt.substring(0,60),M+3,y+18);}}
+  if(type==='devis'){var objEl=document.getElementById('dv-objet');var objTxt=objEl&&objEl.value?objEl.value:'';if(objTxt){doc.setTextColor(100,100,100);doc.setFontSize(8.5);doc.setFont('helvetica','normal');doc.text(objTxt.substring(0,60),M+3,y+bandH-4);}}
   // Bottom border
-  doc.setDrawColor(...NAVY);doc.setLineWidth(0.5);doc.line(M,y+22,W-M,y+22);
+  doc.setDrawColor(...NAVY);doc.setLineWidth(0.5);doc.line(M,y+bandH+2,W-M,y+bandH+2);
 
   // ── TABLE HEADER ─────────────────────────────────────────────────────────
   y+=25;var tblW=W-2*M;
@@ -2193,9 +2201,13 @@ function exportPDF(type,ref,client,ttc){
   // ── ALERTE TELEGRAM CEO si devis généré par Kodjo ─────────────────────
   if(type==='devis' && _currentRole==='kodjo'){
     var _montantTg=subtotal>0?subtotal:(ttc||0);
+    var _tgTel=(document.getElementById('dv-tel')||{}).value||'';
+    var _tgAdresse=(document.getElementById('dv-adresse')||{}).value||'';
     var msgTg='🔔 <b>NOUVEAU DEVIS KODJO</b>\n\n'
       +'📋 Réf : <b>'+ref+'</b>\n'
       +'👤 Client : <b>'+client+'</b>\n'
+      +(_tgTel?'📞 Tél : '+_tgTel+'\n':'')
+      +(_tgAdresse?'📍 Lieu : '+_tgAdresse+'\n':'')
       +'💰 Montant TTC : <b>'+fCFA(_montantTg)+'</b>\n'
       +'🕐 '+new Date().toLocaleString('fr-FR')+'\n'
       +'\n<i>Généré via OPPIN ERP — Section Devis</i>';
