@@ -2254,51 +2254,79 @@ function exportPDF(type,ref,client,ttc){
   // ── CONDITIONS + ACCEPTANCE ───────────────────────────────────────────────
   var condY=Math.max(y+10,196);
   var halfW=(tblW/2)-4;
-
-  // Bandeau conditions
-  doc.setFillColor(240,244,250);doc.rect(M,condY,tblW,11,'F');
-  doc.setFillColor(...BLUE);doc.rect(M,condY,3,11,'F');
-  doc.setTextColor(...NAVY);doc.setFont('helvetica','bold');doc.setFontSize(7);
-  doc.text('CONDITIONS DE VALIDITE',M+6,condY+4.5);
-  doc.setTextColor(...GRAY);doc.setFont('helvetica','normal');doc.setFontSize(7);
-  doc.text('Devis valable 30 jours. Tout bon de commande signe vaut acceptation. Acompte de 50% a la commande.',M+6,condY+9);
-
-  // ── BON POUR ACCORD (gauche) ──────────────────────────────────────────────
   var accY=condY+15;
-  doc.setFillColor(248,250,253);doc.rect(M,accY,halfW,38,'F');
-  doc.setFillColor(...BLUE);doc.rect(M,accY,halfW,7,'F');
-  doc.setTextColor(...WHITE);doc.setFont('helvetica','bold');doc.setFontSize(7.5);
-  doc.text('BON POUR ACCORD — CLIENT',M+3,accY+5);
-
-  doc.setTextColor(...GRAY);doc.setFont('helvetica','normal');doc.setFontSize(7.5);
-  doc.text('Nom et qualite :',M+3,accY+14);
-  doc.setDrawColor(180,190,210);doc.setLineWidth(0.3);
-  doc.line(M+32,accY+14,M+halfW-3,accY+14);
-
-  doc.text('Date :',M+3,accY+22);
-  doc.line(M+14,accY+22,M+halfW/2,accY+22);
-
-  doc.text('Cachet + Signature :',M+3,accY+33);
-  doc.setDrawColor(150,160,180);doc.setLineWidth(0.2);
-  doc.line(M+3,accY+36,M+halfW-3,accY+36);
-
-  doc.setDrawColor(...BLUE);doc.setLineWidth(0.4);doc.rect(M,accY,halfW,38,'S');
-
-  // ── REGLEMENT (droite) ──────────────────────────────────────────────────
   var rx=M+halfW+8;
-  doc.setFillColor(...NAVY);doc.rect(rx,accY,halfW,38,'F');
-  doc.setFillColor(...BLUE);doc.rect(rx,accY,halfW,7,'F');
-  doc.setTextColor(...WHITE);doc.setFont('helvetica','bold');doc.setFontSize(7.5);
-  doc.text('MODALITES DE REGLEMENT',rx+3,accY+5);
 
-  doc.setTextColor(220,235,255);doc.setFont('helvetica','normal');doc.setFontSize(7);
-  doc.text('Moyens acceptes :',rx+3,accY+13);
-  doc.setTextColor(...WHITE);doc.setFont('helvetica','bold');doc.setFontSize(8.5);
-  doc.text('Orange Money  |  Wave  |  MTN MoMo',rx+3,accY+20);
-  doc.setTextColor(...LBLUE);doc.setFont('helvetica','bold');doc.setFontSize(10);
-  doc.text('+225 01 72 23 33 33',rx+3,accY+28);
-  doc.setTextColor(180,210,240);doc.setFont('helvetica','normal');doc.setFontSize(7);
-  doc.text('Virement bancaire disponible sur demande',rx+3,accY+34);
+  if(type==='facture'){
+    // ── BANDEAU CONDITIONS DE REGLEMENT ────────────────────────────────────
+    doc.setFillColor(240,244,250);doc.rect(M,condY,tblW,11,'F');
+    doc.setFillColor(...NAVY);doc.rect(M,condY,3,11,'F');
+    doc.setTextColor(...NAVY);doc.setFont('helvetica','bold');doc.setFontSize(7);
+    doc.text('CONDITIONS DE REGLEMENT',M+6,condY+4.5);
+    doc.setTextColor(...GRAY);doc.setFont('helvetica','normal');doc.setFontSize(7);
+    doc.text('Reglement a reception de facture. Paiement sous 15 jours. Tout retard entraine des penalites.',M+6,condY+9);
+    // ── MOYENS DE PAIEMENT (gauche) ─────────────────────────────────────
+    doc.setFillColor(...NAVY);doc.rect(M,accY,halfW,38,'F');
+    doc.setFillColor(0,160,80);doc.rect(M,accY,halfW,7,'F');
+    doc.setTextColor(...WHITE);doc.setFont('helvetica','bold');doc.setFontSize(7.5);
+    doc.text('MOYENS DE PAIEMENT',M+3,accY+5);
+    doc.setTextColor(220,255,235);doc.setFont('helvetica','normal');doc.setFontSize(7);
+    doc.text('Orange Money',M+3,accY+14);
+    doc.setTextColor(...WHITE);doc.setFont('helvetica','bold');doc.setFontSize(8.5);
+    doc.text('+225 07 72 23 33 33',M+3,accY+20);
+    doc.setTextColor(220,255,235);doc.setFont('helvetica','normal');doc.setFontSize(7);
+    doc.text('Wave  |  MTN MoMo  |  Virement bancaire',M+3,accY+27);
+    doc.setTextColor(180,240,200);doc.setFontSize(6.5);
+    doc.text('Ref. paiement : '+ref+'  —  Client : '+client.substring(0,25),M+3,accY+34);
+    // ── MENTIONS LEGALES (droite) ───────────────────────────────────────
+    doc.setFillColor(248,250,253);doc.rect(rx,accY,halfW,38,'F');
+    doc.setFillColor(...BLUE);doc.rect(rx,accY,halfW,7,'F');
+    doc.setTextColor(...WHITE);doc.setFont('helvetica','bold');doc.setFontSize(7.5);
+    doc.text('MENTIONS LEGALES',rx+3,accY+5);
+    doc.setTextColor(...NAVY);doc.setFont('helvetica','bold');doc.setFontSize(7.5);
+    doc.text('OPPORTUNITES INVEST SARL',rx+3,accY+14);
+    doc.setTextColor(...GRAY);doc.setFont('helvetica','normal');doc.setFontSize(7);
+    doc.text('Av. 17, Rue 24, Treichville — Abidjan, CI',rx+3,accY+20);
+    doc.text('RCCM : CI-ABJ-2022-B-XXXXX',rx+3,accY+26);
+    doc.text('N deg. Contribuable : XXXXXXXXXXXXXXX',rx+3,accY+32);
+    doc.setDrawColor(...BLUE);doc.setLineWidth(0.4);doc.rect(rx,accY,halfW,38,'S');
+  } else {
+    // ── BANDEAU CONDITIONS DE VALIDITE (devis / bl / contrat) ──────────
+    doc.setFillColor(240,244,250);doc.rect(M,condY,tblW,11,'F');
+    doc.setFillColor(...BLUE);doc.rect(M,condY,3,11,'F');
+    doc.setTextColor(...NAVY);doc.setFont('helvetica','bold');doc.setFontSize(7);
+    doc.text('CONDITIONS DE VALIDITE',M+6,condY+4.5);
+    doc.setTextColor(...GRAY);doc.setFont('helvetica','normal');doc.setFontSize(7);
+    doc.text('Devis valable 30 jours. Tout bon de commande signe vaut acceptation. Acompte de 50% a la commande.',M+6,condY+9);
+    // ── BON POUR ACCORD (gauche) ──────────────────────────────────────────
+    doc.setFillColor(248,250,253);doc.rect(M,accY,halfW,38,'F');
+    doc.setFillColor(...BLUE);doc.rect(M,accY,halfW,7,'F');
+    doc.setTextColor(...WHITE);doc.setFont('helvetica','bold');doc.setFontSize(7.5);
+    doc.text('BON POUR ACCORD — CLIENT',M+3,accY+5);
+    doc.setTextColor(...GRAY);doc.setFont('helvetica','normal');doc.setFontSize(7.5);
+    doc.text('Nom et qualite :',M+3,accY+14);
+    doc.setDrawColor(180,190,210);doc.setLineWidth(0.3);
+    doc.line(M+32,accY+14,M+halfW-3,accY+14);
+    doc.text('Date :',M+3,accY+22);
+    doc.line(M+14,accY+22,M+halfW/2,accY+22);
+    doc.text('Cachet + Signature :',M+3,accY+33);
+    doc.setDrawColor(150,160,180);doc.setLineWidth(0.2);
+    doc.line(M+3,accY+36,M+halfW-3,accY+36);
+    doc.setDrawColor(...BLUE);doc.setLineWidth(0.4);doc.rect(M,accY,halfW,38,'S');
+    // ── REGLEMENT (droite) ────────────────────────────────────────────────
+    doc.setFillColor(...NAVY);doc.rect(rx,accY,halfW,38,'F');
+    doc.setFillColor(...BLUE);doc.rect(rx,accY,halfW,7,'F');
+    doc.setTextColor(...WHITE);doc.setFont('helvetica','bold');doc.setFontSize(7.5);
+    doc.text('MODALITES DE REGLEMENT',rx+3,accY+5);
+    doc.setTextColor(220,235,255);doc.setFont('helvetica','normal');doc.setFontSize(7);
+    doc.text('Moyens acceptes :',rx+3,accY+13);
+    doc.setTextColor(...WHITE);doc.setFont('helvetica','bold');doc.setFontSize(8.5);
+    doc.text('Orange Money  |  Wave  |  MTN MoMo',rx+3,accY+20);
+    doc.setTextColor(...LBLUE);doc.setFont('helvetica','bold');doc.setFontSize(10);
+    doc.text('+225 01 72 23 33 33',rx+3,accY+28);
+    doc.setTextColor(180,210,240);doc.setFont('helvetica','normal');doc.setFontSize(7);
+    doc.text('Virement bancaire disponible sur demande',rx+3,accY+34);
+  }
 
   // ── FOOTER ────────────────────────────────────────────────────────────────
   doc.setFillColor(...BLUE);doc.rect(0,278,W,19,'F');
@@ -2308,7 +2336,7 @@ function exportPDF(type,ref,client,ttc){
   doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(200,220,240);
   doc.text('T\u00e9l : +225 01 72 23 33 33   |   www.inovon-ci.com   |   inovon.ci@gmail.com',M,291);
   doc.setTextColor(180,210,240);doc.setFontSize(7);
-  doc.text('Devis valable 30 jours — '+new Date().toLocaleDateString('fr-FR'),W-M,291,{align:'right'});
+  doc.text((type==='facture'?'Facture — Ref. : '+ref:('Devis valable 30 jours — '+new Date().toLocaleDateString('fr-FR'))),W-M,291,{align:'right'});
 
   doc.save(lbl.toLowerCase().replace(/ /g,'-')+'-'+ref+'.pdf');
   if(type==='devis')toast('✅ PDF généré — '+ref,'#0A2A5E');
