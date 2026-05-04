@@ -2091,8 +2091,8 @@ function exportPDF(type,ref,client,ttc){
   // Client block
   doc.setTextColor(...BLUE);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text('CLIENT',M+3,y+5);
   doc.setTextColor(...NAVY);doc.setFontSize(11);doc.setFont('helvetica','bold');doc.text(client,M+3,y+10.5);
-  if(dvTel){doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...GRAY);doc.text('📞 '+dvTel,M+3,y+17);}
-  if(dvAdresse){doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...GRAY);doc.text('📍 '+dvAdresse,M+3,dvTel?y+22:y+17);}
+  if(dvTel){doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...GRAY);doc.text('Tel : '+dvTel,M+3,y+17);}
+  if(dvAdresse){doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...GRAY);doc.text('Lieu : '+dvAdresse,M+3,dvTel?y+22:y+17);}
   // Right info block
   var today=new Date().toLocaleDateString('fr-FR');
   var exp=new Date();exp.setDate(exp.getDate()+30);var expDate=exp.toLocaleDateString('fr-FR');
