@@ -309,9 +309,9 @@ function saveFact(){
       +'<td class="mono" style="font-weight:600">'+fNum(ttc)+' FCFA</td>'
       +'<td><span class="badge by">En attente</span></td><td>'+echeanceAff+'</td><td>—</td>'
       +'<td><div class="ra" style="flex-wrap:wrap;gap:4px">'
-      +'<button class="btn btn-sm" style="background:#25D366;color:#fff;border:none;font-size:11px" onclick="whatsappRelance(''+cEsc+'','+ttc+',''+ref+'',0)">📱 Relancer</button>'
-      +'<button class="btn btn-sm btn-primary" style="font-size:11px" onclick="marquerPayee(''+ref+'',''+cEsc+'','+ttc+')">✓ Encaissée</button>'
-      +'<button class="btn btn-sm" style="background:var(--navy);color:#fff;border:none;font-size:11px" onclick="exportPDF('facture',''+ref+'',''+cEsc+'')">⬇ PDF</button>'
+      +'<button class="btn btn-sm" style="background:#25D366;color:#fff;border:none;font-size:11px" onclick="whatsappRelance(\''+cEsc+'\','+ttc+',\''+ref+'\',0)">📱 Relancer</button>'
+      +'<button class="btn btn-sm btn-primary" style="font-size:11px" onclick="marquerPayee(\''+ref+'\',\''+cEsc+'\','+ttc+')">✓ Encaissée</button>'
+      +'<button class="btn btn-sm" style="background:var(--navy);color:#fff;border:none;font-size:11px" onclick="exportPDF(\'facture\',\''+ref+'\',\''+cEsc+'\')">⬇ PDF</button>'
       +'</div></td>';
     tbody.insertBefore(tr,tbody.firstChild);
   }
@@ -2214,7 +2214,13 @@ function exportPDF(type,ref,client,ttc){
     });
     if(rows.length===0){rows=[['Prestations et fournitures INOVON','1',fNum(subtotal||0),fNum(subtotal||0),subtotal||0]];}
   } else {
-    var ROWS={  y+=7;
+    var ROWS={
+      bl:[['Hikvision DS-2CD2143G2-I','4','—','—',0],['DVR Hikvision DS-7208HUHI-K2','1','—','—',0],['Câble coaxial RG6 (100m)','2','—','—',0],['Visserie + gaines (lot)','1','—','—',0]],
+      contrat:[['Contrat SAV Premium Entreprise','12 mois','50 000','600 000',600000],['Visites préventives trimestrielles','4','inclus','—',0],['Interventions urgence illimitées','illim.','inclus','—',0],['Rapport mensuel surveillance','12','inclus','—',0]]
+    };
+    rows=ROWS[type]||ROWS['bl'];
+  }
+  y+=7;
   rows.forEach(function(row,i){
     var rowH=7;
     if(i%2===0){doc.setFillColor(247,249,252);}else{doc.setFillColor(...WHITE);}
@@ -2329,4 +2335,4 @@ function exportPDF(type,ref,client,ttc){
 }
 </script>
 </body>
-                                                                                                                   
+                                                                                                     
