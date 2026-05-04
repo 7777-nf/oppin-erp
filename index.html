@@ -2188,15 +2188,15 @@ function exportPDF(type,ref,client,ttc){
   doc.setTextColor(180,210,240);doc.setFontSize(7);
   doc.text('Devis valable 30 jours — '+new Date().toLocaleDateString('fr-FR'),W-M,291,{align:'right'});
 
-  var _devisTotal=typeof total!=='undefined'?total:(ttc||0);
   doc.save(lbl.toLowerCase().replace(/ /g,'-')+'-'+ref+'.pdf');
   if(type==='devis')toast('✅ PDF généré — '+ref,'#0A2A5E');
   // ── ALERTE TELEGRAM CEO si devis généré par Kodjo ─────────────────────
   if(type==='devis' && _currentRole==='kodjo'){
+    var _montantTg=subtotal>0?subtotal:(ttc||0);
     var msgTg='🔔 <b>NOUVEAU DEVIS KODJO</b>\n\n'
       +'📋 Réf : <b>'+ref+'</b>\n'
       +'👤 Client : <b>'+client+'</b>\n'
-      +'💰 Montant TTC : <b>'+fCFA(_devisTotal)+'</b>\n'
+      +'💰 Montant TTC : <b>'+fCFA(_montantTg)+'</b>\n'
       +'🕐 '+new Date().toLocaleString('fr-FR')+'\n'
       +'\n<i>Généré via OPPIN ERP — Section Devis</i>';
     fetch('https://api.telegram.org/bot8609518501:AAEbTS3pXNb-ZZWzsziv0KseTSynfHQmgCg/sendMessage',{
