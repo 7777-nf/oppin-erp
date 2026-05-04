@@ -2085,23 +2085,26 @@ function exportPDF(type,ref,client,ttc){
   // Lire tel/adresse depuis le modal (valeurs persistent même modal fermé)
   var dvTel=(document.getElementById('dv-tel')||{}).value||'';
   var dvAdresse=(document.getElementById('dv-adresse')||{}).value||'';
-  var bandH=(dvTel||dvAdresse)?28:22;
+  // Calculer hauteur dynamique selon les champs présents
+  var hasObj=type==='devis'&&(document.getElementById('dv-objet')||{}).value;
+  var extraLines=(dvTel?1:0)+(dvAdresse?1:0)+(hasObj?1:0);
+  var bandH=16+extraLines*6;
   doc.setFillColor(247,249,252);doc.rect(M,y,tblWF(),bandH,'F');
   function tblWF(){return W-2*M;}
   // Client block
   doc.setTextColor(...BLUE);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text('CLIENT',M+3,y+5);
-  doc.setTextColor(...NAVY);doc.setFontSize(11);doc.setFont('helvetica','bold');doc.text(client,M+3,y+10.5);
-  if(dvTel){doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...GRAY);doc.text('Tel : '+dvTel,M+3,y+17);}
-  if(dvAdresse){doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...GRAY);doc.text('Lieu : '+dvAdresse,M+3,dvTel?y+22:y+17);}
+  doc.setTextColor(...NAVY);doc.setFontSize(11);doc.setFont('helvetica','bold');doc.text(client,M+3,y+11);
+  var lineY=y+17;
+  if(dvTel){doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...GRAY);doc.text('Tel : '+dvTel,M+3,lineY);lineY+=6;}
+  if(dvAdresse){doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...GRAY);doc.text('Lieu : '+dvAdresse.substring(0,55),M+3,lineY);lineY+=6;}
+  if(hasObj){doc.setFont('helvetica','italic');doc.setFontSize(8);doc.setTextColor(130,130,130);doc.text(hasObj.substring(0,60),M+3,lineY);}
   // Right info block
   var today=new Date().toLocaleDateString('fr-FR');
   var exp=new Date();exp.setDate(exp.getDate()+30);var expDate=exp.toLocaleDateString('fr-FR');
   doc.setTextColor(...BLUE);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text('DATE',W-M-60,y+5);
-  doc.setTextColor(...NAVY);doc.setFontSize(9);doc.setFont('helvetica','normal');doc.text(today,W-M-60,y+10.5);
-  doc.setTextColor(...BLUE);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text('VALIDITÉ',W-M-60,y+15);
-  doc.setTextColor(...NAVY);doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text(expDate+' (30j)',W-M-60,y+20);
-  // Objet
-  if(type==='devis'){var objEl=document.getElementById('dv-objet');var objTxt=objEl&&objEl.value?objEl.value:'';if(objTxt){doc.setTextColor(100,100,100);doc.setFontSize(8.5);doc.setFont('helvetica','normal');doc.text(objTxt.substring(0,60),M+3,y+bandH-4);}}
+  doc.setTextColor(...NAVY);doc.setFontSize(9);doc.setFont('helvetica','normal');doc.text(today,W-M-60,y+11);
+  doc.setTextColor(...BLUE);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text('VALIDITE',W-M-60,y+17);
+  doc.setTextColor(...NAVY);doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text(expDate+' (30j)',W-M-60,y+23);
   // Bottom border
   doc.setDrawColor(...NAVY);doc.setLineWidth(0.5);doc.line(M,y+bandH+2,W-M,y+bandH+2);
 
