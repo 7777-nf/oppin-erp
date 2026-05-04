@@ -291,7 +291,7 @@ function saveDv(){
       +'<td><span class="badge by">Brouillon</span></td>'
       +'<td><div class="ra">'
       +'<button class="btn btn-sm btn-wa" onclick="whatsappRelance(\''+cEsc+'\','+ttc+',\''+ref+'\',0)">📱 Relancer</button>'
-      +'<button class="btn btn-sm btn-pdf" onclick="exportPDF(\'devis\',\''+ref+'\',\''+cEsc+'\')">⬇ PDF</button>'
+      +'<button class="btn btn-sm btn-pdf" onclick="exportPDF(\'devis\',\''+ref+'\',\''+cEsc+'\','+ttc+')">⬇ PDF</button>'
       +'<button class="btn btn-sm btn-fb" onclick="fbSave(\'devis\',\''+ref+'\',{client:\''+cEsc+'\',objet:\''+oEsc+'\',ttc:'+ttc+',statut:\'brouillon\'})">🔥</button>'
       +'</div></td>';
     tbody.insertBefore(tr,tbody.firstChild);
