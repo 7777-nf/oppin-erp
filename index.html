@@ -259,6 +259,66 @@ function addDvLine(){
   d.innerHTML='<input class="desig" type="text" placeholder="Désignation libre..." style="flex:1;min-width:120px"><input class="qty" type="number" placeholder="Qté" value="1" oninput="calcDv()"><input class="pu" type="number" placeholder="PU HT" value="0" oninput="calcDv()"><button class="btn btn-sm btn-danger" onclick="this.closest(\'.dv-line\').remove();calcDv()">−</button>';
   c.appendChild(d);calcDv();
 }
+var _factRef='F-2026-051';
+function newFacture(){
+  var now=new Date();
+  var base=parseInt(sessionStorage.getItem('_factSeq')||'50')+1;
+  _factRef='F-'+now.getFullYear()+'-'+String(base).padStart(3,'0');
+  sessionStorage.setItem('_factSeq',String(base));
+  var el=document.getElementById('fact-ref-display');if(el)el.textContent=_factRef;
+  var dateEl=document.getElementById('fact-date');if(dateEl)dateEl.value=now.toISOString().split('T')[0];
+  openModal('m-facture');
+}
+function calcFact(){
+  var total=0;
+  document.querySelectorAll('#fact-lines .dv-line').forEach(function(row){
+    var q=parseFloat(row.querySelector('.qty').value)||0,p=parseFloat(row.querySelector('.pu').value)||0;total+=q*p;
+  });
+  var el=document.getElementById('fact-ttc');if(el)el.textContent=fCFA(total);
+}
+function addFactLine(){
+  var c=document.getElementById('fact-lines'),d=document.createElement('div');d.className='dv-line';
+  d.innerHTML='<input class="desig" type="text" placeholder="Désignation..." style="flex:1;min-width:120px" oninput="calcFact()"><input class="qty" type="number" placeholder="Qté" value="1" oninput="calcFact()"><input class="pu" type="number" placeholder="PU HT" value="0" oninput="calcFact()"><button class="btn btn-sm btn-danger" onclick="this.closest(\'.dv-line\').remove();calcFact()">−</button>';
+  c.appendChild(d);calcFact();
+}
+function saveFact(){
+  var client=(document.getElementById('fact-client').value||'').trim();
+  var objet=(document.getElementById('fact-objet').value||'').trim();
+  if(!client){toast('⚠ Client requis','#A32D2D');return;}
+  var lines=document.querySelectorAll('#fact-lines .dv-line');
+  var hasLine=false;
+  lines.forEach(function(l){if((l.querySelector('.desig')||{}).value||''.trim())hasLine=true;});
+  if(!hasLine){toast('⚠ Ajoutez au moins une ligne','#A32D2D');return;}
+  var total=0;
+  lines.forEach(function(l){
+    var qty=parseFloat((l.querySelector('.qty')||{}).value)||1;
+    var pu=parseFloat((l.querySelector('.pu')||{}).value)||0;
+    total+=qty*pu;
+  });
+  var dateVal=document.getElementById('fact-date').value||new Date().toISOString().split('T')[0];
+  var echeanceDays=parseInt(document.getElementById('fact-echeance').value)||15;
+  var echeanceDate=new Date(dateVal);echeanceDate.setDate(echeanceDate.getDate()+echeanceDays);
+  var echeanceAff=echeanceDate.toISOString().split('T')[0].split('-').reverse().join('/');
+  var moyen=(document.getElementById('fact-moyen')||{}).value||'Orange Money';
+  var ttc=Math.round(total);var ref=_factRef;
+  var cEsc=client.replace(/'/g,"\'");
+  var tbody=document.getElementById('factures-tbody');
+  if(tbody){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td><b>'+ref+'</b></td><td>'+client+'</td>'
+      +'<td class="mono" style="font-weight:600">'+fNum(ttc)+' FCFA</td>'
+      +'<td><span class="badge by">En attente</span></td><td>'+echeanceAff+'</td><td>—</td>'
+      +'<td><div class="ra" style="flex-wrap:wrap;gap:4px">'
+      +'<button class="btn btn-sm" style="background:#25D366;color:#fff;border:none;font-size:11px" onclick="whatsappRelance(''+cEsc+'','+ttc+',''+ref+'',0)">📱 Relancer</button>'
+      +'<button class="btn btn-sm btn-primary" style="font-size:11px" onclick="marquerPayee(''+ref+'',''+cEsc+'','+ttc+')">✓ Encaissée</button>'
+      +'<button class="btn btn-sm" style="background:var(--navy);color:#fff;border:none;font-size:11px" onclick="exportPDF('facture',''+ref+'',''+cEsc+'')">⬇ PDF</button>'
+      +'</div></td>';
+    tbody.insertBefore(tr,tbody.firstChild);
+  }
+  fbSave('factures',ref,{client,objet,ttc,statut:'en_attente',date:dateVal,echeance:echeanceDate.toISOString().split('T')[0],moyen});
+  closeModal('m-facture');
+  toast('✅ Facture '+ref+' créée — '+client,'#3B6D11');
+}
 function saveDv(){
   var client=(document.getElementById('dv-client').value||'').trim();
   var objet=(document.getElementById('dv-objet').value||'').trim();
@@ -1194,7 +1254,7 @@ window._fbLoadDevis=function(){
 
 <!-- FACTURES -->
 <div id="page-factures" class="page">
-  <div class="topbar"><div class="topbar-title">Factures</div><div class="topbar-actions"><button class="btn btn-fb" onclick="loadFacturesFirebase()">🔥 Charger Firebase</button><button class="btn btn-primary" onclick="openModal('m-facture')">+ Nouvelle facture</button></div></div>
+  <div class="topbar"><div class="topbar-title">Factures</div><div class="topbar-actions"><button class="btn btn-fb" onclick="loadFacturesFirebase()">🔥 Charger Firebase</button><button class="btn btn-primary" onclick="newFacture()">+ Nouvelle facture</button></div></div>
   <div class="content">
     <div id="factures-impayees-banner" class="info-box red">⚠ <strong>1 770 000 FCFA</strong> impayés — 2 factures en retard. Relancer maintenant.</div>
     <div class="card">
@@ -1206,9 +1266,9 @@ window._fbLoadDevis=function(){
       <div id="t-all" class="tab-pane active">
         <table><thead><tr><th>N° Facture</th><th>Client</th><th>Montant</th><th>Statut</th><th>Échéance</th><th>Retard</th><th>Actions</th></tr></thead>
         <tbody id="factures-tbody">
-          <tr><td><b>F-2026-050</b></td><td>Pharmacie Cocody</td><td class="mono" style="font-weight:600">850 000 FCFA</td><td><span class="badge by">En attente</span></td><td>15/04/2026</td><td><span class="badge by">8j</span></td><td><div class="ra"><button class="btn btn-sm" style="background:#25D366;color:#fff;border:none" onclick="whatsappRelance('Pharmacie Cocody',850000,'F-2026-050',8)" title="Relancer par WhatsApp">📱 Relancer</button><button class="btn btn-sm btn-primary" onclick="marquerPayee('F-2026-050','Pharmacie Cocody',850000)">✓ Encaissée</button><button class="btn btn-sm" style="background:var(--navy);color:#fff;border:none" onclick="exportPDF('facture','F-2026-050','Pharmacie Cocody')">⬇ PDF</button></div></td></tr>
+          <tr><td><b>F-2026-050</b></td><td>Pharmacie Cocody</td><td class="mono" style="font-weight:600">850 000 FCFA</td><td><span class="badge by">En attente</span></td><td>15/04/2026</td><td><span class="badge by">8j</span></td><td><div class="ra" style="flex-wrap:wrap;gap:3px"><button class="btn btn-sm" style="background:#25D366;color:#fff;border:none" onclick="whatsappRelance('Pharmacie Cocody',850000,'F-2026-050',8)">📱 Relancer</button><button class="btn btn-sm btn-primary" onclick="marquerPayee('F-2026-050','Pharmacie Cocody',850000)">✓ Encaissée</button><button class="btn btn-sm" style="background:var(--navy);color:#fff;border:none" onclick="exportPDF('facture','F-2026-050','Pharmacie Cocody')">⬇ PDF</button></div></td></tr>
           <tr><td><b>F-2026-049</b></td><td>COFIPA SA</td><td class="mono" style="font-weight:600">2 100 000 FCFA</td><td><span class="badge bb">Envoyée</span></td><td>30/04/2026</td><td>—</td><td><div class="ra"><button class="btn btn-sm btn-primary" onclick="marquerPayee('F-2026-049','COFIPA SA',2100000)">✓ Encaissée</button><button class="btn btn-sm" style="background:var(--navy);color:#fff;border:none" onclick="exportPDF('facture','F-2026-049','COFIPA SA')">⬇ PDF</button></div></td></tr>
-          <tr><td><b>F-2026-048</b></td><td>Hôtel Ivotel</td><td class="mono" style="font-weight:600;color:var(--red)">650 000 FCFA</td><td><span class="badge br">Impayée</span></td><td>01/04/2026</td><td><span class="badge br">23j</span></td><td><div class="ra"><button class="btn btn-sm" style="background:#25D366;color:#fff;border:none" onclick="whatsappRelance('Hôtel Ivotel',650000,'F-2026-048',23)" title="Relancer par WhatsApp">📱 Relancer</button><button class="btn btn-sm btn-primary" onclick="marquerPayee('F-2026-048','Hôtel Ivotel',650000)">✓ Encaissée</button><button class="btn btn-sm" style="background:var(--navy);color:#fff;border:none" onclick="exportPDF('facture','F-2026-048','Hôtel Ivotel')">⬇ PDF</button></div></td></tr>
+          <tr><td><b>F-2026-048</b></td><td>Hôtel Ivotel</td><td class="mono" style="font-weight:600;color:var(--red)">650 000 FCFA</td><td><span class="badge br">Impayée</span></td><td>01/04/2026</td><td><span class="badge br">23j</span></td><td><div class="ra"><button class="btn btn-sm" style="background:#25D366;color:#fff;border:none" onclick="whatsappRelance('Hôtel Ivotel',650000,'F-2026-048',23)">📱 Relancer</button><button class="btn btn-sm btn-primary" onclick="marquerPayee('F-2026-048','Hôtel Ivotel',650000)">✓ Encaissée</button><button class="btn btn-sm" style="background:var(--navy);color:#fff;border:none" onclick="exportPDF('facture','F-2026-048','Hôtel Ivotel')">⬇ PDF</button></div></td></tr>
           <tr><td><b>F-2026-047</b></td><td>Résidence Les Bois</td><td class="mono" style="font-weight:600;color:var(--green)">420 000 FCFA</td><td><span class="badge bg">Payée</span></td><td>07/04/2026</td><td>—</td><td><div class="ra"><button class="btn btn-sm" style="background:var(--navy);color:#fff;border:none" onclick="exportPDF('facture','F-2026-047','Résidence Les Bois')">⬇ PDF</button></div></td></tr>
         </tbody></table>
       </div>
@@ -1510,21 +1570,35 @@ window._fbLoadDevis=function(){
 </div>
 
 <div id="m-facture" class="overlay">
-  <div class="modal">
-    <div class="modal-hd">Nouvelle facture <button class="xbtn" onclick="closeModal('m-facture')">×</button></div>
+  <div class="modal" style="max-width:700px">
+    <div class="modal-hd">Nouvelle facture — <span id="fact-ref-display" style="color:var(--gold);font-weight:700">F-2026-051</span> <button class="xbtn" onclick="closeModal('m-facture')">×</button></div>
     <div class="modal-bd">
       <div class="grid2">
-        <div class="fg"><label>Client</label><select id="fact-client"><option>— Choisir —</option><option>Pharmacie Cocody</option><option>Sté COFIPA SA</option><option>Hôtel Ivotel</option><option>Résidence Les Bois</option></select></div>
-        <div class="fg"><label>Depuis commande</label><select><option>— Saisie manuelle —</option><option>C-2026-022 — Pharmacie Cocody</option><option>C-2026-021 — Résidence Palm</option></select></div>
-        <div class="fg"><label>Date</label><input type="date" id="fact-date" value="2026-04-25"></div>
+        <div class="fg"><label>Client <span style="font-size:10px;color:var(--text2)">(tape ou choisis)</span></label><input type="text" id="fact-client" list="fact-clients-list" placeholder="Nom du client..." autocomplete="off"><datalist id="fact-clients-list"><option value="Pharmacie Cocody"><option value="Sté COFIPA SA"><option value="Hôtel Ivotel"><option value="Résidence Les Bois"><option value="Supermarché Orca"><option value="Résidence Palm"></datalist></div>
+        <div class="fg"><label>Objet</label><input type="text" id="fact-objet" placeholder="Ex : Installation caméras Hikvision"></div>
+        <div class="fg"><label>📞 Téléphone client</label><input type="text" id="fact-tel" placeholder="+225 07 00 00 000"></div>
+        <div class="fg"><label>📍 Localisation</label><input type="text" id="fact-adresse" placeholder="Ex : Cocody, Abidjan"></div>
+        <div class="fg"><label>Date facture</label><input type="date" id="fact-date"></div>
         <div class="fg"><label>Échéance (jours)</label><input type="number" id="fact-echeance" value="15"></div>
         <div class="fg span2"><label>Mode de règlement</label><select id="fact-moyen"><option>Orange Money</option><option>MTN MoMo</option><option>Wave</option><option>Virement bancaire</option><option>Espèces</option></select></div>
+      </div>
+      <div class="sep"></div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:8px">Lignes de facturation</div>
+      <div id="fact-lines">
+        <div class="dv-line"><input class="desig" type="text" placeholder="Désignation..." style="flex:1;min-width:120px" oninput="calcFact()"><input class="qty" type="number" placeholder="Qté" value="1" oninput="calcFact()"><input class="pu" type="number" placeholder="PU HT" value="0" oninput="calcFact()"><button class="btn btn-sm btn-danger" onclick="this.closest('.dv-line').remove();calcFact()">−</button></div>
+      </div>
+      <button class="btn btn-sm" style="margin-top:6px" onclick="addFactLine()">+ Ligne</button>
+      <div class="sep"></div>
+      <div style="display:flex;justify-content:flex-end">
+        <div style="width:220px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+          <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#111;color:#fff;font-weight:700;font-size:14px"><span>TOTAL HT</span><span id="fact-ttc">0 FCFA</span></div>
+        </div>
       </div>
     </div>
     <div class="modal-ft">
       <button class="btn" onclick="closeModal('m-facture')">Annuler</button>
-      <button class="btn btn-fb" onclick="saveFactureFirebase()">🔥 Sauver Firebase</button>
-      <button class="btn btn-primary" onclick="closeModal('m-facture');toast('✅ Facture créée','#3B6D11')">📄 Créer</button>
+      <button class="btn btn-pdf" onclick="exportPDF('facture',_factRef,document.getElementById('fact-client').value)">⬇ PDF</button>
+      <button class="btn btn-primary" onclick="saveFact()">📄 Enregistrer</button>
     </div>
   </div>
 </div>
@@ -2130,15 +2204,17 @@ function exportPDF(type,ref,client,ttc){
       if(desig.trim()){rows.push([desig,String(qty),fNum(pu),fNum(pu*qty),pu*qty]);}
     });
     if(rows.length===0){rows=[['(aucune désignation saisie)','—','—','—',0]];}
+  } else if(type==='facture'){
+    var factLines=document.querySelectorAll('#fact-lines .dv-line');
+    factLines.forEach(function(line){
+      var desig=(line.querySelector('.desig')||{}).value||'';
+      var qty=parseFloat((line.querySelector('.qty')||{}).value)||1;
+      var pu=parseFloat((line.querySelector('.pu')||{}).value)||0;
+      if(desig.trim()){rows.push([desig,String(qty),fNum(pu),fNum(pu*qty),pu*qty]);}
+    });
+    if(rows.length===0){rows=[['Prestations et fournitures INOVON','1',fNum(subtotal||0),fNum(subtotal||0),subtotal||0]];}
   } else {
-    var ROWS={
-      facture:[['Hikvision DS-2CD2143G2-I Dôme 4MP','2','85 000','170 000',170000],['Câble coaxial RG6 (100m)','1','35 000','35 000',35000],["Main d'oeuvre installation",'1','150 000','150 000',150000],['Alimentation 12V/5A','1','25 000','25 000',25000],['Contrat maintenance Essentielle','1','40 000','40 000',40000]],
-      bl:[['Hikvision DS-2CD2143G2-I','4','—','—',0],['DVR Hikvision DS-7208HUHI-K2','1','—','—',0],['Câble coaxial RG6 (100m)','2','—','—',0],['Visserie + gaines (lot)','1','—','—',0]],
-      contrat:[['Contrat SAV Premium Entreprise','12 mois','50 000','600 000',600000],['Visites préventives trimestrielles','4','inclus','—',0],['Interventions urgence illimitées','illim.','inclus','—',0],['Rapport mensuel surveillance','12','inclus','—',0]]
-    };
-    rows=ROWS[type]||ROWS['facture'];
-  }
-  y+=7;
+    var ROWS={  y+=7;
   rows.forEach(function(row,i){
     var rowH=7;
     if(i%2===0){doc.setFillColor(247,249,252);}else{doc.setFillColor(...WHITE);}
