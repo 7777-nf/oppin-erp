@@ -2195,7 +2195,7 @@ function exportPDF(type,ref,client,ttc){
     var msgTg='🔔 <b>NOUVEAU DEVIS KODJO</b>\n\n'
       +'📋 Réf : <b>'+ref+'</b>\n'
       +'👤 Client : <b>'+client+'</b>\n'
-      +'💰 Montant TTC : <b>'+fCFA(ttc||0)+'</b>\n'
+      +'💰 Montant TTC : <b>'+fCFA(total||ttc||0)+'</b>\n'
       +'🕐 '+new Date().toLocaleString('fr-FR')+'\n'
       +'\n<i>Généré via OPPIN ERP — Section Devis</i>';
     fetch('https://api.telegram.org/bot8609518501:AAEbTS3pXNb-ZZWzsziv0KseTSynfHQmgCg/sendMessage',{
