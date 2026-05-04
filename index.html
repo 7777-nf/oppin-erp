@@ -2265,7 +2265,7 @@ function exportPDF(type,ref,client,ttc){
     doc.setTextColor(...NAVY);doc.setFont('helvetica','bold');doc.setFontSize(7);
     doc.text('CONDITIONS DE REGLEMENT',M+6,condY+4.5);
     doc.setTextColor(...GRAY);doc.setFont('helvetica','normal');doc.setFontSize(7);
-    doc.text('Reglement a reception de facture. Paiement sous 15 jours. Tout retard entraine des penalites.',M+6,condY+9);
+    doc.text('Reglement a reception de facture. Tout retard de paiement entraine des penalites.',M+6,condY+9);
     // ── MOYENS DE PAIEMENT (gauche) ─────────────────────────────────────
     doc.setFillColor(...NAVY);doc.rect(M,accY,halfW,38,'F');
     doc.setFillColor(0,160,80);doc.rect(M,accY,halfW,7,'F');
