@@ -2177,8 +2177,10 @@ function exportPDF(type,ref,client,ttc){
   var exp=new Date();exp.setDate(exp.getDate()+30);var expDate=exp.toLocaleDateString('fr-FR');
   doc.setTextColor(...BLUE);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text('DATE',W-M-60,y+5);
   doc.setTextColor(...NAVY);doc.setFontSize(9);doc.setFont('helvetica','normal');doc.text(today,W-M-60,y+11);
+  if(type!=='facture'){
   doc.setTextColor(...BLUE);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text('VALIDITE',W-M-60,y+17);
   doc.setTextColor(...NAVY);doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text(expDate+' (30j)',W-M-60,y+23);
+  }
   // Bottom border
   doc.setDrawColor(...NAVY);doc.setLineWidth(0.5);doc.line(M,y+bandH+2,W-M,y+bandH+2);
 
@@ -2190,8 +2192,8 @@ function exportPDF(type,ref,client,ttc){
   doc.text('DÉSIGNATION',cx[0],y+5);
   doc.setTextColor(...LBLUE);
   doc.text('QTÉ',cx[1],y+5);
-  doc.text('PU HT',cx[2],y+5);
-  doc.text('TOTAL HT',cx[4],y+5,{align:'right'});
+  doc.text('PU',cx[2],y+5);
+  doc.text('TOTAL',cx[4],y+5,{align:'right'});
 
   // ── TABLE ROWS ────────────────────────────────────────────────────────────
   var rows=[],subtotal=0;
@@ -2243,12 +2245,12 @@ function exportPDF(type,ref,client,ttc){
   var bx=W-M-72,bw=72;
   // Sub-total row
   doc.setFillColor(247,249,252);doc.rect(bx,y,bw,7,'F');
-  doc.setTextColor(...GRAY);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text('Sous-total HT',bx+3,y+5);
+  doc.setTextColor(...GRAY);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text('Sous-total',bx+3,y+5);
   doc.setTextColor(...NAVY);doc.setFont('helvetica','normal');doc.text(fNum(subtotal)+' FCFA',bx+bw-2,y+5,{align:'right'});
   y+=8;
   // Total box
   doc.setFillColor(...NAVY);doc.rect(bx,y,bw,10,'F');
-  doc.setTextColor(...WHITE);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.text('TOTAL HT',bx+3,y+7);
+  doc.setTextColor(...WHITE);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.text('TOTAL',bx+3,y+7);
   doc.setTextColor(...LBLUE);doc.setFontSize(11);doc.text(fNum(subtotal)+' FCFA',bx+bw-2,y+7.5,{align:'right'});
   y+=16;
 
