@@ -256,7 +256,7 @@ function dvSaveNewClient(){
 }
 function addDvLine(){
   var c=document.getElementById('dv-lines'),d=document.createElement('div');d.className='dv-line';
-  d.innerHTML='<input class="desig" type="text" placeholder="Désignation libre..." style="flex:1;min-width:120px"><input class="qty" type="number" placeholder="Qté" value="1" oninput="calcDv()"><input class="pu" type="number" placeholder="PU HT" value="0" oninput="calcDv()"><button class="btn btn-sm btn-danger" onclick="this.closest(\'.dv-line\').remove();calcDv()">−</button>';
+  d.innerHTML='<input class="desig" type="text" placeholder="Désignation libre..." style="flex:1;min-width:120px"><input class="qty" type="number" placeholder="Qté" value="1" oninput="calcDv()"><input class="pu" type="number" placeholder="PU" value="0" oninput="calcDv()"><button class="btn btn-sm btn-danger" onclick="this.closest(\'.dv-line\').remove();calcDv()">−</button>';
   c.appendChild(d);calcDv();
 }
 var _factRef='F-2026-051';
@@ -278,7 +278,7 @@ function calcFact(){
 }
 function addFactLine(){
   var c=document.getElementById('fact-lines'),d=document.createElement('div');d.className='dv-line';
-  d.innerHTML='<input class="desig" type="text" placeholder="Désignation..." style="flex:1;min-width:120px" oninput="calcFact()"><input class="qty" type="number" placeholder="Qté" value="1" oninput="calcFact()"><input class="pu" type="number" placeholder="PU HT" value="0" oninput="calcFact()"><button class="btn btn-sm btn-danger" onclick="this.closest(\'.dv-line\').remove();calcFact()">−</button>';
+  d.innerHTML='<input class="desig" type="text" placeholder="Désignation..." style="flex:1;min-width:120px" oninput="calcFact()"><input class="qty" type="number" placeholder="Qté" value="1" oninput="calcFact()"><input class="pu" type="number" placeholder="PU" value="0" oninput="calcFact()"><button class="btn btn-sm btn-danger" onclick="this.closest(\'.dv-line\').remove();calcFact()">−</button>';
   c.appendChild(d);calcFact();
 }
 function saveFact(){
@@ -725,7 +725,7 @@ function genererDevisExpressPDF(){
   var tblW=W-2*M,cols=[M+2,M+85,M+105,M+130,M+158];
   doc.setFillColor(...DARK);doc.rect(M,y,tblW,7,'F');
   doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(8);
-  doc.text('Désignation / Référence',cols[0],y+5);doc.text('Réf.',cols[1],y+5);doc.text('Qté',cols[2],y+5);doc.text('PU HT',cols[3],y+5);doc.text('Total HT',cols[4],y+5);
+  doc.text('Désignation / Référence',cols[0],y+5);doc.text('Réf.',cols[1],y+5);doc.text('Qté',cols[2],y+5);doc.text('PU',cols[3],y+5);doc.text('Total',cols[4],y+5);
   y+=7;var subtot=0;
   sel.forEach((s,i)=>{
     var rowH=s.name.length>42?13:8;
@@ -738,7 +738,7 @@ function genererDevisExpressPDF(){
   });
   // Totaux
   y+=4;var bx=W-M-65,bw=65;
-  [['TOTAL HT',fCFA(subtot),true]].forEach(([lbl,val,isTot])=>{
+  [['TOTAL',fCFA(subtot),true]].forEach(([lbl,val,isTot])=>{
     if(isTot){doc.setFillColor(...BORG);doc.rect(bx,y,bw,9,'F');doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(10);doc.text(lbl,bx+2,y+6.5);doc.text(val,bx+bw-2,y+6.5,{align:'right'});y+=9;}
     else{doc.setFillColor(...LG);doc.rect(bx,y,bw,7,'F');doc.setTextColor(...GRAY);doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.text(lbl,bx+2,y+5);doc.setFont('helvetica','bold');doc.setTextColor(...DARK);doc.text(val,bx+bw-2,y+5,{align:'right'});y+=7;}
   });
@@ -1141,7 +1141,7 @@ function renderCashMonitor(){
       <!-- Totaux -->
       <div class="dex-total-box">
         <div class="dex-total-row"><span>Sous-total HT</span><span class="mono" id="dex-ht">0 FCFA</span></div>
-        <div class="dex-total-ttc"><span>TOTAL HT</span><span class="mono" id="dex-ttc">0 FCFA</span></div>
+        <div class="dex-total-ttc"><span>TOTAL</span><span class="mono" id="dex-ttc">0 FCFA</span></div>
       </div>
 
       <!-- Notes -->
@@ -1289,8 +1289,8 @@ window._fbLoadDevis=function(){
           <div class="inv-sheet">
             <div class="inv-hd"><div><div class="inv-logo">INOVON <span>|</span> OPPIN SARL</div><div style="font-size:11.5px;color:var(--text2);margin-top:6px;line-height:1.65">Abidjan, Côte d'Ivoire<br>+225 01 72 23 33 33</div></div><div class="inv-meta"><strong>FACTURE N° F-2026-047</strong><div>Date : 04/04/2026</div><div>Échéance : 07/04/2026</div><div style="margin-top:7px"><span class="badge bg">Payée</span></div></div></div>
             <div class="inv-parties"><div><div class="inv-pl">Émetteur</div><div class="inv-pn">OPPIN SARL — INOVON</div><div class="inv-pi">Abidjan, Côte d'Ivoire</div></div><div><div class="inv-pl">Client</div><div class="inv-pn">Résidence Les Bois</div><div class="inv-pi">Riviera, Abidjan</div></div></div>
-            <table class="inv-tbl"><thead><tr><th>Désignation</th><th style="text-align:right">Qté</th><th style="text-align:right">PU HT</th><th style="text-align:right">Total HT</th></tr></thead><tbody><tr><td>Hikvision DS-2CD2143G2-I — Caméra dôme 4MP</td><td style="text-align:right">2</td><td style="text-align:right">85 000</td><td style="text-align:right">170 000</td></tr><tr><td>Câble coaxial RG6 (100m)</td><td style="text-align:right">1</td><td style="text-align:right">35 000</td><td style="text-align:right">35 000</td></tr><tr><td>Main d'œuvre installation</td><td style="text-align:right">1</td><td style="text-align:right">150 000</td><td style="text-align:right">150 000</td></tr><tr><td>Contrat maintenance Essentielle (1 mois)</td><td style="text-align:right">1</td><td style="text-align:right">40 000</td><td style="text-align:right">40 000</td></tr></tbody></table>
-            <div class="inv-tots"><div class="tots-box"><div class="tot-total"><span>TOTAL HT</span><span>420 000 FCFA</span></div></div></div>
+            <table class="inv-tbl"><thead><tr><th>Désignation</th><th style="text-align:right">Qté</th><th style="text-align:right">PU</th><th style="text-align:right">Total</th></tr></thead><tbody><tr><td>Hikvision DS-2CD2143G2-I — Caméra dôme 4MP</td><td style="text-align:right">2</td><td style="text-align:right">85 000</td><td style="text-align:right">170 000</td></tr><tr><td>Câble coaxial RG6 (100m)</td><td style="text-align:right">1</td><td style="text-align:right">35 000</td><td style="text-align:right">35 000</td></tr><tr><td>Main d'œuvre installation</td><td style="text-align:right">1</td><td style="text-align:right">150 000</td><td style="text-align:right">150 000</td></tr><tr><td>Contrat maintenance Essentielle (1 mois)</td><td style="text-align:right">1</td><td style="text-align:right">40 000</td><td style="text-align:right">40 000</td></tr></tbody></table>
+            <div class="inv-tots"><div class="tots-box"><div class="tot-total"><span>TOTAL</span><span>420 000 FCFA</span></div></div></div>
             <div class="inv-footer">Règlement : Orange Money (+225 01 72 23 33 33) | MTN MoMo | Wave | Virement bancaire</div>
           </div>
         </div>
@@ -1550,13 +1550,13 @@ window._fbLoadDevis=function(){
       <div class="sep"></div>
       <div style="font-size:12px;font-weight:600;margin-bottom:8px">Lignes du devis</div>
       <div id="dv-lines">
-        <div class="dv-line"><input class="desig" type="text" placeholder="Désignation libre..." style="flex:1;min-width:120px" oninput="calcDv()"><input class="qty" type="number" placeholder="Qté" value="1" oninput="calcDv()"><input class="pu" type="number" placeholder="PU HT" value="0" oninput="calcDv()"><button class="btn btn-sm btn-danger" onclick="this.closest('.dv-line').remove();calcDv()">−</button></div>
+        <div class="dv-line"><input class="desig" type="text" placeholder="Désignation libre..." style="flex:1;min-width:120px" oninput="calcDv()"><input class="qty" type="number" placeholder="Qté" value="1" oninput="calcDv()"><input class="pu" type="number" placeholder="PU" value="0" oninput="calcDv()"><button class="btn btn-sm btn-danger" onclick="this.closest('.dv-line').remove();calcDv()">−</button></div>
       </div>
       <button class="btn btn-sm" style="margin-top:6px" onclick="addDvLine()">+ Ligne</button>
       <div class="sep"></div>
       <div style="display:flex;justify-content:flex-end">
         <div style="width:220px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
-          <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#111;color:#fff;font-weight:700;font-size:14px"><span>TOTAL HT</span><span id="dv-ttc">0 FCFA</span></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#111;color:#fff;font-weight:700;font-size:14px"><span>TOTAL</span><span id="dv-ttc">0 FCFA</span></div>
         </div>
       </div>
     </div>
@@ -1585,13 +1585,13 @@ window._fbLoadDevis=function(){
       <div class="sep"></div>
       <div style="font-size:12px;font-weight:600;margin-bottom:8px">Lignes de facturation</div>
       <div id="fact-lines">
-        <div class="dv-line"><input class="desig" type="text" placeholder="Désignation..." style="flex:1;min-width:120px" oninput="calcFact()"><input class="qty" type="number" placeholder="Qté" value="1" oninput="calcFact()"><input class="pu" type="number" placeholder="PU HT" value="0" oninput="calcFact()"><button class="btn btn-sm btn-danger" onclick="this.closest('.dv-line').remove();calcFact()">−</button></div>
+        <div class="dv-line"><input class="desig" type="text" placeholder="Désignation..." style="flex:1;min-width:120px" oninput="calcFact()"><input class="qty" type="number" placeholder="Qté" value="1" oninput="calcFact()"><input class="pu" type="number" placeholder="PU" value="0" oninput="calcFact()"><button class="btn btn-sm btn-danger" onclick="this.closest('.dv-line').remove();calcFact()">−</button></div>
       </div>
       <button class="btn btn-sm" style="margin-top:6px" onclick="addFactLine()">+ Ligne</button>
       <div class="sep"></div>
       <div style="display:flex;justify-content:flex-end">
         <div style="width:220px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
-          <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#111;color:#fff;font-weight:700;font-size:14px"><span>TOTAL HT</span><span id="fact-ttc">0 FCFA</span></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#111;color:#fff;font-weight:700;font-size:14px"><span>TOTAL</span><span id="fact-ttc">0 FCFA</span></div>
         </div>
       </div>
     </div>
