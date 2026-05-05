@@ -2157,8 +2157,8 @@ function exportPDF(type,ref,client,ttc){
   // ── INFO BAND ────────────────────────────────────────────────────────────
   var y=HDR+9;
   // Lire tel/adresse depuis le modal (valeurs persistent même modal fermé)
-  var dvTel=(document.getElementById('dv-tel')||{}).value||'';
-  var dvAdresse=(document.getElementById('dv-adresse')||{}).value||'';
+  var dvTel=(type==='facture'?(document.getElementById('fact-tel')||{}).value:(document.getElementById('dv-tel')||{}).value)||'';
+  var dvAdresse=(type==='facture'?(document.getElementById('fact-adresse')||{}).value:(document.getElementById('dv-adresse')||{}).value)||'';
   // Calculer hauteur dynamique selon les champs présents
   var hasObj=type==='devis'&&(document.getElementById('dv-objet')||{}).value;
   var extraLines=(dvTel?1:0)+(dvAdresse?1:0)+(hasObj?1:0);
