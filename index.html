@@ -1211,6 +1211,36 @@ function dexReset(){
       toast(newOnes.length+" prospects charges !","#3B6D11");
     } catch(e){toast("Erreur: "+e.message,"#A32D2D");}
   };
+
+  window.loadProspectsFirebase = async () => {
+    if(!window._fbReady){toast("Firebase non connecte","#A32D2D");return;}
+    try {
+      toast("Chargement prospects...","#1a56db");
+      const snap = await getDocs(collection(db,"prospects"));
+      if(snap.empty){toast("Aucun prospect dans Firebase","#888");return;}
+      var loaded = [];
+      snap.forEach(d => {
+        const p=d.data(),id=d.id;
+        loaded.push({
+          id: id,
+          nom: p.nom||"N/A",
+          zone: p.zone||"",
+          tel: p.telephone||"",
+          interet: p.interet||"",
+          statut: "tiede",
+          montant: parseInt(p.potentiel||0),
+          derniere_action: p.dateCreation?p.dateCreation.substring(0,10):"",
+          prochain_contact: p.prochainContact||"",
+          notes: p.notes||"",
+        });
+      });
+      var existingIds=CRM_DATA.prospects.map(x=>x.id);
+      var newOnes=loaded.filter(p=>!existingIds.includes(p.id));
+      CRM_DATA.prospects=CRM_DATA.prospects.concat(newOnes);
+      renderCRM();
+      toast(newOnes.length+" prospects charges !","#3B6D11");
+    } catch(e){toast("Erreur: "+e.message,"#A32D2D");console.error(e);}
+  };
 window._fbLoadDevis=function(){
   var cont=document.getElementById('dex-saved-list');if(!cont)return;
   if(!window._fbReady||!window._db){cont.innerHTML='<div class="info-box yellow" style="margin:0">Firebase non connecté</div>';return;}
