@@ -309,9 +309,49 @@ pre{white-space:pre-wrap;font-family:inherit}
 .view-header{margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)}
 .view-header h2{font-size:20px;font-weight:800;letter-spacing:-0.3px;margin-bottom:3px}
 .view-header p{font-size:13px;color:var(--text2)}
+
+/* ─── AUTH OVERLAY ─── */
+#auth-overlay{position:fixed;inset:0;background:var(--bg1);display:flex;align-items:center;justify-content:center;z-index:9999}
+.auth-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:36px 32px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+.auth-logo-mark{width:44px;height:44px;background:var(--red);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:#fff;flex-shrink:0}
+.auth-logo-text{font-size:22px;font-weight:900;color:var(--text);letter-spacing:-.5px}
+.auth-tagline{font-size:12px;color:var(--text2);margin-bottom:28px;padding-left:56px}
+.auth-field{margin-bottom:14px}
+.auth-field label{display:block;font-size:11px;font-weight:700;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.auth-field input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;outline:none;transition:border-color .2s;box-sizing:border-box}
+.auth-field input:focus{border-color:var(--red)}
+.auth-btn{width:100%;background:var(--red);color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;margin-top:6px;transition:opacity .2s;letter-spacing:.3px}
+.auth-btn:hover{opacity:.85}
+.auth-error{color:var(--red);font-size:12px;margin-top:10px;text-align:center;display:none;font-weight:600}
+.auth-footer{font-size:11px;color:var(--text3);text-align:center;margin-top:20px}
 </style>
 </head>
 <body>
+
+<!-- ═══════════════════════════════════════
+     AUTH OVERLAY
+════════════════════════════════════════ -->
+<div id="auth-overlay">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="auth-logo-mark">⚡</div>
+      <div class="auth-logo-text">CHARLE</div>
+    </div>
+    <div class="auth-tagline">Directeur Financier IA · OPPIN SARL · Abidjan</div>
+    <div class="auth-field">
+      <label>Adresse email</label>
+      <input type="email" id="auth-email" placeholder="votre@email.com" autocomplete="email" onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()">
+    </div>
+    <div class="auth-field">
+      <label>Mot de passe</label>
+      <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="auth-btn" onclick="doLogin()">🔐 Connexion</button>
+    <div class="auth-error" id="auth-error">Email ou mot de passe incorrect</div>
+    <div class="auth-footer">Accès réservé au personnel autorisé OPPIN SARL</div>
+  </div>
+</div>
 
 <!-- ═══════════════════════════════════════
      SETUP SCREEN
@@ -494,6 +534,10 @@ pre{white-space:pre-wrap;font-family:inherit}
           <span style="font-size:12px">⚙️</span>
           <span style="font-size:12px;color:var(--text2)">Paramètres</span>
         </div>
+      </div>
+      <div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;padding:4px 2px 0">
+        <div style="font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px" id="sidebar-user">—</div>
+        <button onclick="doLogout()" title="Déconnexion" style="background:none;border:1px solid var(--border);border-radius:5px;color:var(--text3);cursor:pointer;font-size:10px;padding:3px 8px;flex-shrink:0;transition:all .15s" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">⇠ Sortir</button>
       </div>
     </div>
   </nav><!-- /sidebar -->
@@ -3088,10 +3132,10 @@ async function updateConfig() {
 // ============================================================
 // STARTUP
 // ============================================================
-function startApp() {
+function startApp(role) {
   document.getElementById('setup-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
-  showTab('warroom');
+  showTab(role === 'tech' ? 'devis' : 'warroom');
   updateCashDate();
   renderAll();
   document.getElementById('manual-date').value = new Date().toISOString().split('T')[0];
@@ -3110,18 +3154,91 @@ function startApp() {
   startAlertEngineScheduler();
 }
 
+// ============================================================
+// AUTHENTIFICATION
+// ============================================================
+const CHARLE_USERS = [
+  {
+    email: 'albanngoran85@gmail.com',
+    enc: btoa(encodeURIComponent('OPPIN@2025' + '_CHARLE_SALT_OPPIN')),
+    role: 'ceo',
+    name: "CEO — Fabrice N'Goran"
+  },
+  {
+    email: 'tech@inovon.com',
+    enc: btoa(encodeURIComponent('INOVON@tech' + '_CHARLE_SALT_OPPIN')),
+    role: 'tech',
+    name: 'Technicien INOVON'
+  }
+];
+
+function checkAuthOnLoad() {
+  try {
+    const stored = sessionStorage.getItem('charleAuth');
+    if (stored) {
+      const u = JSON.parse(stored);
+      if (u && u.role && u.email) return u;
+    }
+  } catch(e) {}
+  return null;
+}
+
+function doLogin() {
+  const email = (document.getElementById('auth-email')?.value || '').trim().toLowerCase();
+  const pass = document.getElementById('auth-password')?.value || '';
+  const enc = btoa(encodeURIComponent(pass + '_CHARLE_SALT_OPPIN'));
+  const user = CHARLE_USERS.find(u => u.email.toLowerCase() === email && u.enc === enc);
+  const errEl = document.getElementById('auth-error');
+  if (!user) {
+    if (errEl) { errEl.style.display = 'block'; errEl.textContent = 'Email ou mot de passe incorrect'; }
+    const pwEl = document.getElementById('auth-password');
+    if (pwEl) { pwEl.value = ''; pwEl.focus(); }
+    return;
+  }
+  if (errEl) errEl.style.display = 'none';
+  sessionStorage.setItem('charleAuth', JSON.stringify({ email: user.email, role: user.role, name: user.name }));
+  document.getElementById('auth-overlay').style.display = 'none';
+  applyAuthSession(user);
+}
+
+function doLogout() {
+  sessionStorage.removeItem('charleAuth');
+  location.reload();
+}
+
+function applyAuthSession(user) {
+  const userEl = document.getElementById('sidebar-user');
+  if (userEl) userEl.textContent = user.name;
+  if (user.role === 'tech') {
+    document.querySelectorAll('.nav-group-label').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.nav-item').forEach(el => el.style.display = 'none');
+    const devisItem = document.querySelector('.nav-item[data-tab="devis"]');
+    if (devisItem) { devisItem.style.display = 'flex'; }
+    const kpiRow = document.querySelector('.sidebar-kpi-row');
+    if (kpiRow) kpiRow.style.display = 'none';
+  }
+  if (DB.config.setupDone) {
+    startApp(user.role);
+    if (DB.config.firebaseCfg) initFirebase(DB.config.firebaseCfg);
+  } else if (user.role === 'ceo') {
+    document.getElementById('setup-screen').style.display = 'flex';
+  } else {
+    const errEl = document.getElementById('auth-error');
+    if (errEl) { errEl.style.display = 'block'; errEl.textContent = 'CHARLE non configuré. Contacter le CEO.'; }
+    document.getElementById('auth-overlay').style.display = 'flex';
+  }
+}
+
 window.onload = async function() {
   loadDB();
-  // PDF.js worker
   if (typeof pdfjsLib !== 'undefined') {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   }
-  if (DB.config.setupDone) {
-    startApp();
-    // Reconnexion Firebase automatique si config existante
-    if (DB.config.firebaseCfg) {
-      initFirebase(DB.config.firebaseCfg); // async, non-bloquant
-    }
+  const authUser = checkAuthOnLoad();
+  if (authUser) {
+    applyAuthSession(authUser);
+  } else {
+    document.getElementById('auth-overlay').style.display = 'flex';
   }
 };
 
