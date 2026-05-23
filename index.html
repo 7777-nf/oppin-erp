@@ -7611,7 +7611,7 @@ JSON: {"churn_risk_level":"FAIBLE|MODÉRÉ|ÉLEVÉ|CRITIQUE","mrr_at_risk":monta
         ${a.retention_script?`<div style="background:var(--bg3);border-radius:6px;padding:10px;font-size:12px;margin-bottom:8px;font-style:italic;color:var(--text2)">📞 "${a.retention_script}"</div>`:''}
         ${(a.actions||[]).map((t,i)=>`<div style="background:var(--bg3);border-radius:4px;padding:8px;margin-bottom:6px;font-size:13px"><span style="color:var(--red);font-weight:700">${i+1}.</span> ${t}</div>`).join('')}
         ${a.prevention_tip?`<div style="background:rgba(63,185,80,.07);border-radius:6px;padding:8px;font-size:12px;margin-top:8px">💡 <strong>Prévention:</strong> ${a.prevention_tip}</div>`:''}
-        ${a.recommendation?`<div style="background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.3);border-radius:6px;padding:10px;font-size:13px;margin-top:8px"><strong style="color:var(--gold)">→ Verdict CEO:</strong> ${a.recommendation}</div>`:''}\`;
+        ${a.recommendation?`<div style="background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.3);border-radius:6px;padding:10px;font-size:13px;margin-top:8px"><strong style="color:var(--gold)">→ Verdict CEO:</strong> ${a.recommendation}</div>`:''}`;
     } else { result.innerHTML=`<div style="background:var(--bg3);border-radius:6px;padding:12px;font-size:13px;white-space:pre-wrap">${raw}</div>`; }
   } catch(e){result.innerHTML=`<div class="text-red">❌ ${e.message}</div>`;}
 }
