@@ -321,7 +321,7 @@ pre{white-space:pre-wrap;font-family:inherit}
       <div style="width:40px;height:40px;background:var(--red);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#fff;flex-shrink:0">⚡</div>
       <div>
         <h1 style="margin-bottom:0">CHARLE</h1>
-        <div style="font-size:11px;color:var(--text2);margin-top:1px">v4 · OPPIN Group · Abidjan</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:1px">v4 · OPPIN SARL · Abidjan</div>
       </div>
     </div>
     <div class="tagline">Directeur Financier IA autonome · OPPORTUNITES INVEST</div>
@@ -2232,7 +2232,7 @@ pre{white-space:pre-wrap;font-family:inherit}
                   <text x="110" y="261" font-family="Arial,sans-serif" font-size="11" fill="white" text-anchor="middle" letter-spacing="2">Sécurité Électronique</text>
                 </svg>
                 <div>
-                  <div style="font-size:10px;color:#666">OPPIN Group · Abidjan, Côte d'Ivoire</div>
+                  <div style="font-size:10px;color:#666">OPPIN SARL · Abidjan, Côte d'Ivoire</div>
                   <div style="font-size:10px;color:#666;margin-top:2px">albanngoran85@gmail.com</div>
                 </div>
               </div>
@@ -6656,11 +6656,11 @@ function waRelance(id) {
   const daysOverdue = Math.floor((now - new Date(r.dueDate || r.date)) / 864e5);
   let msg = '';
   if (daysOverdue <= 7) {
-    msg = `Bonjour ${r.clientName || 'M/Mme'},\n\nNous vous rappelons que votre facture INOVON d'un montant de ${formatAmount(r.amount)} arrive à échéance.\nMerci de procéder au règlement dans les meilleurs délais.\n\nCordialement,\nINOVON — OPPIN Group`;
+    msg = `Bonjour ${r.clientName || 'M/Mme'},\n\nNous vous rappelons que votre facture INOVON d'un montant de ${formatAmount(r.amount)} arrive à échéance.\nMerci de procéder au règlement dans les meilleurs délais.\n\nCordialement,\nINOVON — OPPIN SARL`;
   } else if (daysOverdue <= 21) {
-    msg = `Bonjour ${r.clientName || 'M/Mme'},\n\nVotre facture INOVON de ${formatAmount(r.amount)} est en retard de ${daysOverdue} jours.\nMerci de régulariser rapidement pour éviter toute interruption de service.\n\nCordialement,\nINOVON — OPPIN Group`;
+    msg = `Bonjour ${r.clientName || 'M/Mme'},\n\nVotre facture INOVON de ${formatAmount(r.amount)} est en retard de ${daysOverdue} jours.\nMerci de régulariser rapidement pour éviter toute interruption de service.\n\nCordialement,\nINOVON — OPPIN SARL`;
   } else {
-    msg = `Bonjour ${r.clientName || 'M/Mme'},\n\n⚠️ MISE EN DEMEURE — Votre facture INOVON de ${formatAmount(r.amount)} est impayée depuis ${daysOverdue} jours.\nSans règlement sous 48h, nous serons contraints de suspendre votre contrat.\n\nMerci de nous contacter immédiatement.\nINOVON — OPPIN Group`;
+    msg = `Bonjour ${r.clientName || 'M/Mme'},\n\n⚠️ MISE EN DEMEURE — Votre facture INOVON de ${formatAmount(r.amount)} est impayée depuis ${daysOverdue} jours.\nSans règlement sous 48h, nous serons contraints de suspendre votre contrat.\n\nMerci de nous contacter immédiatement.\nINOVON — OPPIN SARL`;
   }
   r.lastRelance = new Date().toISOString();
   saveDB();
@@ -7215,7 +7215,7 @@ function liveDevisPreview() {
         <div style="display:flex;align-items:center;gap:16px">
           ${INOVON_LOGO_SVG}
           <div>
-            <div style="font-size:10px;color:#666;margin-top:6px">OPPIN Group — Sécurité électronique</div>
+            <div style="font-size:10px;color:#666;margin-top:6px">OPPIN SARL — Sécurité électronique</div>
             <div style="font-size:10px;color:#666">Avenue 17, Rue 24 Treichville</div>
             <div style="font-size:10px;color:#666">+225 01 72 23 33 33 · www.inovon-ci.com</div>
           </div>
@@ -7232,7 +7232,7 @@ function liveDevisPreview() {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
         <div style="background:#f8f9fc;border-radius:6px;padding:14px">
           <div style="font-size:10px;font-weight:700;color:#0d1c60;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Émetteur</div>
-          <div style="font-weight:700;font-size:13px">INOVON — OPPIN Group</div>
+          <div style="font-weight:700;font-size:13px">INOVON — OPPIN SARL</div>
           <div style="color:#555;font-size:11px;margin-top:3px">Sécurité électronique</div>
           <div style="color:#555;font-size:11px">Avenue 17, Rue 24 Treichville</div>
           <div style="color:#555;font-size:11px">+225 01 72 23 33 33</div>
@@ -7290,7 +7290,7 @@ function liveDevisPreview() {
           <div style="font-size:10px;color:#888">Date : ____________________</div>
         </div>
         <div>
-          <div style="font-size:11px;font-weight:700;color:#0d1c60;margin-bottom:8px">POUR INOVON — OPPIN Group</div>
+          <div style="font-size:11px;font-weight:700;color:#0d1c60;margin-bottom:8px">POUR INOVON — OPPIN SARL</div>
           <div style="font-size:10px;color:#888;margin-bottom:4px">Signature et cachet :</div>
           <div style="height:50px;border-bottom:1px solid #ccc;margin-bottom:4px"></div>
           <div style="font-size:10px;color:#888">Date : ____________________</div>
@@ -7299,7 +7299,7 @@ function liveDevisPreview() {
 
       <!-- PIED DE PAGE -->
       <div style="margin-top:24px;padding-top:12px;border-top:2px solid #0d1c60;display:flex;justify-content:space-between;align-items:center">
-        <div style="font-size:10px;color:#888">INOVON — Sécurité Électronique · OPPIN Group</div>
+        <div style="font-size:10px;color:#888">INOVON — Sécurité Électronique · OPPIN SARL</div>
         <div style="font-size:10px;color:#888">Avenue 17, Rue 24 Treichville · +225 01 72 23 33 33 · www.inovon-ci.com</div>
         <div>${INOVON_LOGO_SVG.replace('width="90" height="115"','width="32" height="41"')}</div>
       </div>
