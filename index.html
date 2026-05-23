@@ -7086,7 +7086,7 @@ function initDevis() {
   // Lignes par défaut
   if (!devisLines.length) {
     devisLines = [
-      { desc: 'Maintenance Confort — Vidéosurveillance (4 caméras HD + NVR)', qty: 1, unit: 25000 }
+      { desc: '', qty: 1, unit: 0 }
     ];
   }
   renderDevisLines();
@@ -7148,16 +7148,7 @@ function renderDevisLines() {
 }
 
 function addDevisLine() {
-  const offers = [
-    { desc: 'Maintenance Essentiel — Alarme intrusion + télésurveillance', qty: 1, unit: 15000 },
-    { desc: 'Maintenance Confort — Vidéosurveillance HD + alarme', qty: 1, unit: 25000 },
-    { desc: 'Maintenance Premium — Système complet + intervention prioritaire', qty: 1, unit: 50000 },
-    { desc: 'Installation matériel — Caméra HD Hikvision (fourniture + pose)', qty: 1, unit: 75000 },
-    { desc: 'Câblage réseau et mise en service', qty: 1, unit: 35000 },
-  ];
-  const existing = devisLines.length;
-  const next = offers[existing % offers.length] || { desc: 'Prestation complémentaire', qty: 1, unit: 0 };
-  devisLines.push({...next});
+  devisLines.push({ desc: '', qty: 1, unit: 0 });
   renderDevisLines();
   liveDevisPreview();
 }
@@ -7343,7 +7334,7 @@ function saveAndPrintDevis() {
 }
 
 function resetDevis() {
-  devisLines = [{ desc: 'Maintenance Confort — Vidéosurveillance HD + alarme', qty: 1, unit: 25000 }];
+  devisLines = [{ desc: '', qty: 1, unit: 0 }];
   document.getElementById('dev-client').value = '';
   document.getElementById('dev-address').value = '';
   document.getElementById('dev-contact').value = '';
