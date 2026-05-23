@@ -7448,4 +7448,266 @@ function updateScenario() {
         <div style="font-size:11px;color:${trMargin>=0?'var(--green)':'var(--red)'}">${deliveries}/j · CA ${formatAmount(trMonthlyRevenue)}</div>
       </div>
       <div style="background:var(--bg3);border-radius:6px;padding:10px;border:1px solid rgba(63,185,80,.3)">
-        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;margin-bottom:
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;margin-bottom:4px">Recouvrement récupéré</div>
+        <div style="font-size:20px;font-weight:800;color:var(--green)">${formatAmount(recoveryAmount)}</div>
+        <div style="font-size:11px;color:var(--text2)">${recoveryPct}% de ${formatAmount(overdueTotal)}</div>
+      </div>
+      <div style="background:rgba(212,168,67,.1);border-radius:6px;padding:10px;border:1px solid rgba(212,168,67,.5)">
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;margin-bottom:4px">CASH TOTAL / MOIS</div>
+        <div style="font-size:22px;font-weight:900;color:var(--gold)">${formatAmount(monthlyTotal)}</div>
+        <div style="font-size:11px;color:var(--text2)">ARR projeté: ${formatAmount(netMRR*12)}</div>
+      </div>
+    </div>
+    <div style="margin-top:10px;font-size:12px;color:var(--text2)">Churn: -${formatAmount(churnLoss)}/mois · Nouveaux contrats: +${formatAmount(newMRR)}/mois</div>`;
+  renderScenarioChart(baseMRR,newMRR,churnRate,trMargin,recoveryAmount,horizon);
+}
+
+function renderScenarioChart(baseMRR,newMRR,churnRate,trMargin,recoveryAmount,horizon) {
+  const el=document.getElementById('sc-chart'); if(!el) return;
+  const labels=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+  const now=new Date();let currentMRR=baseMRR;const months=[];
+  for(let i=0;i<horizon;i++){
+    const idx=(now.getMonth()+i)%12;
+    currentMRR=currentMRR+newMRR-Math.round(currentMRR*churnRate/100);
+    const total=currentMRR+trMargin+(i===0?recoveryAmount:Math.round(recoveryAmount*0.3));
+    months.push({label:labels[idx],mrr:currentMRR,total});
+  }
+  const maxVal=Math.max(...months.map(m=>m.total),1);
+  el.innerHTML=`<div style="width:100%;padding:0 4px">
+    <div style="display:flex;align-items:flex-end;gap:4px;height:140px">
+      ${months.map(m=>{
+        const pctT=Math.round(m.total/maxVal*100);
+        const pctM=m.total>0?Math.round(m.mrr/m.total*pctT):0;
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+          <div style="font-size:9px;color:var(--gold);font-weight:700;margin-bottom:2px">${m.total>=1000000?(m.total/1000000).toFixed(1)+'M':(m.total>=1000?(m.total/1000).toFixed(0)+'K':m.total)}</div>
+          <div style="width:100%;flex:1;display:flex;flex-direction:column;justify-content:flex-end">
+            <div style="width:100%;height:${pctT}%;background:rgba(212,168,67,.25);border-radius:3px 3px 0 0;position:relative;min-height:3px">
+              <div style="position:absolute;bottom:0;width:100%;height:${m.mrr>0?Math.min(pctM,100)+'%':'0'};background:var(--gold);border-radius:2px 2px 0 0;min-height:2px"></div>
+            </div>
+          </div>
+          <div style="font-size:9px;color:var(--text2);margin-top:2px">${m.label}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:8px;font-size:11px;color:var(--text2)">
+      <span><span style="display:inline-block;width:10px;height:10px;background:var(--gold);border-radius:2px;margin-right:3px"></span>MRR</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:rgba(212,168,67,.25);border-radius:2px;margin-right:3px"></span>Cash total</span>
+    </div>
+  </div>`;
+}
+
+async function runScenarioAI() {
+  const result=document.getElementById('sc-ai-result'); if(!result) return;
+  result.innerHTML='<div class="loading-row"><div class="spinner"></div> Analyse du scénario en cours...</div>';
+  try {
+    const contracts=document.getElementById('sc-contracts')?.value||0;
+    const premium=document.getElementById('sc-premium')?.value||20;
+    const churn=document.getElementById('sc-churn')?.value||2;
+    const deliveries=document.getElementById('sc-deliveries')?.value||17;
+    const ticket=document.getElementById('sc-ticket')?.value||4200;
+    const recovery=document.getElementById('sc-recovery')?.value||50;
+    const horizon=document.getElementById('sc-horizon')?.value||3;
+    const mrr=computeMRR();
+    const prompt=`CFO IA CHARLE — OPPIN (Côte d'Ivoire). CEO présente ce scénario sur ${horizon} mois:
+- INOVON: +${contracts} contrats, ${premium}% Premium, churn ${churn}%/mois. MRR actuel: ${formatAmount(mrr.total)}, target ${formatAmount(mrr.target)}
+- TROPRAPIDE: ${deliveries} livraisons/j (BEP=17), ticket ${ticket} FCFA
+- Recouvrement: ${recovery}% des créances en retard
+JSON: {"verdict":"GO|ATTENTION|RISQUE","resume":"bilan 2 phrases max","biggest_lever":"levier cash prioritaire","biggest_risk":"risque principal","actions":["action semaine 1","action 2","action 3"],"realistic_cash":montant_FCFA,"recommendation":"décision CEO GO/TEST/NO GO + justification 1 ligne"}`;
+    const raw=await callGemini(prompt);let a;
+    try{const mx=raw.match(/{[\s\S]*}/);a=JSON.parse(mx?mx[0]:raw);}catch(e){a=null;}
+    if(a){
+      const sc={'GO':'green','ATTENTION':'yellow','RISQUE':'red'};
+      result.innerHTML=`
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+          <span style="background:rgba(63,185,80,.1);color:var(--${sc[a.verdict]||'blue'});border-radius:10px;padding:4px 14px;font-size:14px;font-weight:800">${a.verdict}</span>
+          <span style="font-size:13px;flex:1">${a.resume||''}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          ${a.biggest_lever?`<div style="background:rgba(63,185,80,.07);border-radius:6px;padding:8px;font-size:12px"><strong style="color:var(--green)">🚀 Levier:</strong> ${a.biggest_lever}</div>`:''}
+          ${a.biggest_risk?`<div style="background:rgba(248,81,73,.07);border-radius:6px;padding:8px;font-size:12px"><strong style="color:var(--red)">⚠️ Risque:</strong> ${a.biggest_risk}</div>`:''}
+        </div>
+        ${(a.actions||[]).map((t,i)=>`<div style="background:var(--bg3);border-radius:4px;padding:8px;margin-bottom:6px;font-size:13px"><span style="color:var(--gold);font-weight:700">${i+1}.</span> ${t}</div>`).join('')}
+        ${a.realistic_cash?`<div style="background:var(--bg3);border-radius:6px;padding:8px;font-size:13px;margin-top:6px">💰 Cash réaliste/mois: <strong style="color:var(--gold)">${formatAmount(a.realistic_cash)}</strong></div>`:''}
+        ${a.recommendation?`<div style="background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.3);border-radius:6px;padding:10px;font-size:13px;margin-top:8px"><strong style="color:var(--gold)">→ Décision CEO:</strong> ${a.recommendation}</div>`:''}`;
+    } else { result.innerHTML=`<div style="background:var(--bg3);border-radius:6px;padding:12px;font-size:13px;white-space:pre-wrap">${raw}</div>`; }
+  } catch(e){result.innerHTML=`<div class="text-red">❌ ${e.message}</div>`;}
+}
+
+// ============================================================
+// ENGINE #8 — CHURN RADAR / RÉTENTION INOVON
+// ============================================================
+
+function computeChurnScore(lead) {
+  let score=0;const now=Date.now();
+  const lastContact=lead.lastContact||lead.createdAt;
+  const daysSince=lastContact?Math.floor((now-new Date(lastContact))/864e5):999;
+  if(daysSince>90)score+=40;else if(daysSince>60)score+=30;else if(daysSince>30)score+=20;else if(daysSince>14)score+=10;
+  const hasLate=(DB.receivables||[]).some(r=>{const d=Math.floor((now-new Date(r.dueDate||r.date))/864e5);return r.clientName===lead.name&&d>30;});
+  if(hasLate)score+=30;
+  const age=lead.createdAt?Math.floor((now-new Date(lead.createdAt))/864e5):0;
+  if(age<30)score+=15;else if(age<90)score+=8;
+  if((lead.offer||'').includes('Essentiel'))score+=15;else if((lead.offer||'').includes('Confort'))score+=8;
+  return Math.min(100,score);
+}
+
+function renderChurnGrid() {
+  const el=document.getElementById('churn-grid'); if(!el) return;
+  const signed=(DB.crmLeads||[]).filter(l=>l.stage==='SIGNÉ');
+  if(!signed.length){
+    el.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🛡️</div><div class="empty-text">Ajoutez des clients signés dans le CRM INOVON pour voir le score de risque</div></div>';
+    ['churn-safe','churn-watch','churn-risk','churn-mrr-risk'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='—';});
+    return;
+  }
+  let safe=0,watch=0,risk=0,mrrRisk=0;
+  const offerMap={'Essentiel':15000,'Confort':25000,'Premium':50000};
+  const cards=signed.map(lead=>{
+    const score=computeChurnScore(lead);
+    let level,color;
+    if(score<=25){level='STABLE';color='var(--green)';safe++;}
+    else if(score<=55){level='SURVEILLER';color='var(--yellow)';watch++;}
+    else{level='RISQUE ÉLEVÉ';color='var(--red)';risk++;}
+    const offerKey=Object.keys(offerMap).find(k=>(lead.offer||'').includes(k));
+    const mrr=offerKey?offerMap[offerKey]:25000;
+    if(score>55)mrrRisk+=mrr;
+    const daysSince=lead.lastContact?Math.floor((Date.now()-new Date(lead.lastContact))/864e5):null;
+    return `<div class="card" style="border:1px solid ${color}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div><div style="font-weight:700;font-size:14px">${lead.name}</div><div style="font-size:11px;color:var(--text2)">${lead.offer||'—'} · ${lead.zone||'—'}</div></div>
+        <div style="text-align:right"><div style="font-size:22px;font-weight:900;color:${color}">${score}</div><div style="font-size:10px;color:${color};font-weight:700">${level}</div></div>
+      </div>
+      <div style="background:var(--bg3);border-radius:3px;height:6px;overflow:hidden;margin-bottom:8px">
+        <div style="width:${score}%;height:100%;background:${color};border-radius:3px;transition:width .4s"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:8px">${daysSince!==null?`Dernier contact: il y a ${daysSince}j`:'Pas de date de contact'}</div>
+      ${score>40?`<button class="btn-sm" style="width:100%;color:var(--gold)" onclick="waRelance(${lead.id})">📱 Relancer WhatsApp</button>`:''}
+    </div>`;
+  });
+  el.innerHTML=cards.join('');
+  const e=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  e('churn-safe',safe);e('churn-watch',watch);e('churn-risk',risk);e('churn-mrr-risk',formatAmount(mrrRisk));
+}
+
+async function runChurnAnalysis() {
+  const result=document.getElementById('churn-ai-result'); if(!result) return;
+  result.innerHTML='<div class="loading-row"><div class="spinner"></div> Analyse churn en cours...</div>';
+  try {
+    const signed=(DB.crmLeads||[]).filter(l=>l.stage==='SIGNÉ');
+    if(!signed.length){result.innerHTML='<div class="text-muted">Aucun client signé dans le CRM</div>';return;}
+    const risks=signed.map(l=>({name:l.name,score:computeChurnScore(l),offer:l.offer})).filter(l=>l.score>40).sort((a,b)=>b.score-a.score);
+    const mrr=computeMRR();
+    const prompt=`CFO IA CHARLE — expert rétention INOVON (sécurité électronique, Abidjan). Contrats récurrents 15K/25K/50K FCFA/mois. Churn = ennemi n°1 du MRR.
+MRR actuel: ${formatAmount(mrr.total)} / Target: ${formatAmount(mrr.target)}. Clients à risque: ${JSON.stringify(risks)}. Total clients: ${signed.length}.
+JSON: {"churn_risk_level":"FAIBLE|MODÉRÉ|ÉLEVÉ|CRITIQUE","mrr_at_risk":montant_FCFA,"top_priority_client":"nom client le plus urgent","retention_script":"script relance tél 3 phrases","actions":["action anti-churn aujourd'hui","action cette semaine","action ce mois"],"prevention_tip":"conseil structurel anti-churn INOVON","recommendation":"verdict CEO 2 lignes"}`;
+    const raw=await callGemini(prompt);let a;
+    try{const mx=raw.match(/{[\s\S]*}/);a=JSON.parse(mx?mx[0]:raw);}catch(e){a=null;}
+    if(a){
+      const sc={'FAIBLE':'green','MODÉRÉ':'yellow','ÉLEVÉ':'red','CRITIQUE':'red'};
+      result.innerHTML=`
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+          <span style="background:rgba(248,81,73,.1);color:var(--${sc[a.churn_risk_level]||'red'});border-radius:10px;padding:2px 10px;font-size:12px;font-weight:700">Risque: ${a.churn_risk_level}</span>
+          ${a.mrr_at_risk?`<span style="font-size:13px;color:var(--red)">MRR à risque: ${formatAmount(a.mrr_at_risk)}</span>`:''}
+        </div>
+        ${a.top_priority_client?`<div style="background:rgba(248,81,73,.07);border-radius:6px;padding:8px;font-size:12px;margin-bottom:8px">🎯 <strong>Priorité 1:</strong> Appeler <strong>${a.top_priority_client}</strong> aujourd'hui</div>`:''}
+        ${a.retention_script?`<div style="background:var(--bg3);border-radius:6px;padding:10px;font-size:12px;margin-bottom:8px;font-style:italic;color:var(--text2)">📞 "${a.retention_script}"</div>`:''}
+        ${(a.actions||[]).map((t,i)=>`<div style="background:var(--bg3);border-radius:4px;padding:8px;margin-bottom:6px;font-size:13px"><span style="color:var(--red);font-weight:700">${i+1}.</span> ${t}</div>`).join('')}
+        ${a.prevention_tip?`<div style="background:rgba(63,185,80,.07);border-radius:6px;padding:8px;font-size:12px;margin-top:8px">💡 <strong>Prévention:</strong> ${a.prevention_tip}</div>`:''}
+        ${a.recommendation?`<div style="background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.3);border-radius:6px;padding:10px;font-size:13px;margin-top:8px"><strong style="color:var(--gold)">→ Verdict CEO:</strong> ${a.recommendation}</div>`:''}\`;
+    } else { result.innerHTML=`<div style="background:var(--bg3);border-radius:6px;padding:12px;font-size:13px;white-space:pre-wrap">${raw}</div>`; }
+  } catch(e){result.innerHTML=`<div class="text-red">❌ ${e.message}</div>`;}
+}
+
+// ============================================================
+// ENGINE #9 — WAR ROOM CEO
+// ============================================================
+
+function refreshWarRoom() {
+  const now=new Date();
+  const dateEl=document.getElementById('wr-date');
+  if(dateEl)dateEl.textContent=now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' · '+now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  const buCash=getCashByBU();
+  const totalCash=Object.values(buCash).reduce((s,v)=>s+(v.balance||0),0);
+  const wcash=document.getElementById('wr-cash');const wcs=document.getElementById('wr-cash-status');
+  if(wcash){wcash.textContent=formatAmount(totalCash);wcash.style.color=totalCash<ALERT_THRESHOLDS.cashMin?'var(--red)':'var(--gold)';}
+  if(wcs)wcs.textContent=totalCash<ALERT_THRESHOLDS.cashMin?'⚠️ SOUS LE SEUIL D\'ALERTE':'✅ Niveau acceptable';
+  const mrr=computeMRR();
+  const wmrr=document.getElementById('wr-mrr');const wmg=document.getElementById('wr-mrr-gap');
+  if(wmrr){wmrr.textContent=formatAmount(mrr.total);wmrr.style.color=mrr.total>=mrr.target?'var(--green)':'var(--yellow)';}
+  if(wmg){if(mrr.total>=mrr.target){wmg.textContent='✅ Target atteinte';wmg.style.color='var(--green)';}else{wmg.textContent=`Gap: -${formatAmount(mrr.gap)} (${mrr.gapContracts} contrats)`;wmg.style.color='var(--yellow)';}}
+  if(!DB.trDeliveries)DB.trDeliveries=[];
+  const tm=now.toISOString().substring(0,7);
+  const mDel=DB.trDeliveries.filter(d=>d.date.startsWith(tm));
+  const totDel=mDel.reduce((s,d)=>s+d.total,0);
+  const avgDel=mDel.length?Math.round(totDel/mDel.length):0;
+  const wdel=document.getElementById('wr-deliveries');const wdavg=document.getElementById('wr-deliveries-avg');
+  if(wdel){wdel.textContent=totDel;wdel.style.color=avgDel>=17?'var(--green)':avgDel>=12?'var(--yellow)':'var(--blue)';}
+  if(wdavg)wdavg.textContent=`moy. ${avgDel}/jour ${avgDel>=17?'✅':avgDel>0?'⚠️':'—'}`;
+  const overdueRecs=(DB.receivables||[]).filter(r=>{const d=Math.floor((Date.now()-new Date(r.dueDate||r.date))/864e5);return d>ALERT_THRESHOLDS.overdueMinDays&&r.status!=='PAYÉ';});
+  const overdueTotal=overdueRecs.reduce((s,r)=>s+(r.amount||0),0);
+  const wo=document.getElementById('wr-overdue');const woc=document.getElementById('wr-overdue-count');
+  if(wo){wo.textContent=formatAmount(overdueTotal);wo.style.color=overdueTotal>0?'var(--red)':'var(--green)';}
+  if(woc)woc.textContent=overdueRecs.length>0?`${overdueRecs.length} client(s) en retard`:'Aucun retard ✅';
+  const today=now.toISOString().split('T')[0];
+  const nextFiscal=(DB.fiscalEvents||[]).filter(f=>f.status==='À PAYER'&&f.deadline>=today).sort((a,b)=>a.deadline.localeCompare(b.deadline))[0];
+  const wf=document.getElementById('wr-fiscal');const wfl=document.getElementById('wr-fiscal-label');
+  if(wf){if(nextFiscal){const d=Math.ceil((new Date(nextFiscal.deadline)-now)/864e5);wf.textContent=`J-${d}`;wf.style.color=d<=5?'var(--red)':d<=14?'var(--yellow)':'var(--green)';if(wfl)wfl.textContent=`${nextFiscal.type} — ${formatAmount(nextFiscal.amount)}`;}else{wf.textContent='—';wf.style.color='var(--green)';if(wfl)wfl.textContent='Aucune échéance imminente ✅';}}
+  const crmDue=(DB.crmLeads||[]).filter(l=>{if(l.stage==='PERDU'||l.stage==='SIGNÉ')return false;const last=l.lastContact||l.createdAt;if(!last)return true;return Math.floor((Date.now()-new Date(last))/864e5)>ALERT_THRESHOLDS.crmSilentDays;});
+  const wcrm=document.getElementById('wr-crm-due');if(wcrm){wcrm.textContent=crmDue.length;wcrm.style.color=crmDue.length>0?'var(--purple)':'var(--green)';}
+  const actions=[];
+  if(overdueTotal>0)actions.push({p:1,icon:'💰',text:`Recouvrer ${formatAmount(overdueTotal)} — ${overdueRecs.length} client(s)`,tab:'collection',color:'var(--red)'});
+  if(crmDue.length>0)actions.push({p:2,icon:'📞',text:`Relancer ${crmDue.length} prospect(s) CRM (>${ALERT_THRESHOLDS.crmSilentDays}j sans contact)`,tab:'crm',color:'var(--purple)'});
+  if(mrr.gap>0)actions.push({p:3,icon:'📈',text:`Signer ${mrr.gapContracts} contrat(s) → target MRR ${formatAmount(mrr.target)}`,tab:'crm',color:'var(--gold)'});
+  if(avgDel<17&&avgDel>0)actions.push({p:3,icon:'🚴',text:`TROPRAPIDE: +${17-avgDel} livraisons/j pour le BEP`,tab:'troprapide',color:'var(--blue)'});
+  if(nextFiscal&&Math.ceil((new Date(nextFiscal.deadline)-now)/864e5)<=14)actions.push({p:2,icon:'🧾',text:`Échéance fiscale J-${Math.ceil((new Date(nextFiscal.deadline)-now)/864e5)}: ${nextFiscal.type}`,tab:'fiscal',color:'var(--yellow)'});
+  if(totalCash<ALERT_THRESHOLDS.cashMin)actions.push({p:1,icon:'🚨',text:`CASH CRITIQUE: ${formatAmount(totalCash)} < seuil`,tab:'cash',color:'var(--red)'});
+  const top3=actions.sort((a,b)=>a.p-b.p).slice(0,3);
+  const actionsEl=document.getElementById('wr-actions');
+  if(actionsEl)actionsEl.innerHTML=top3.length?top3.map(a=>`<div onclick="showTab('${a.tab}')" style="cursor:pointer;background:var(--bg3);border-left:3px solid ${a.color};border-radius:0 6px 6px 0;padding:10px;margin-bottom:8px"><div style="font-weight:700;font-size:13px">${a.icon} ${a.text}</div><div style="font-size:11px;color:var(--text2);margin-top:2px">→ Voir détails</div></div>`).join(''):'<div style="color:var(--green);font-size:13px;padding:10px">✅ Tableau de bord au vert !</div>';
+  const activeAlerts=(DB.alerts||[]).filter(a=>!a.acknowledged).slice(0,5);
+  const alertsEl=document.getElementById('wr-alerts-list');
+  if(alertsEl)alertsEl.innerHTML=activeAlerts.length?activeAlerts.map(a=>`<div style="padding:8px;border-bottom:1px solid var(--border);font-size:12px"><div style="font-weight:600">${a.title}</div><div style="color:var(--text2)">${a.message}</div></div>`).join(''):'<div style="color:var(--text2);font-size:12px;padding:8px">Aucune alerte active ✅</div>';
+  const pl=DB.crmLeads||[];
+  const ps={'PROSPECT':0,'QUALIFIÉ':0,'DÉMO':0,'NÉGOCIATION':0,'SIGNÉ':0};
+  pl.forEach(l=>{if(ps[l.stage]!==undefined)ps[l.stage]++;});
+  const pEl=document.getElementById('wr-pipeline');
+  if(pEl){
+    const tot=Object.values(ps).reduce((s,v)=>s+v,0);
+    if(!tot){pEl.innerHTML='<div style="color:var(--text2);font-size:12px">Aucun lead dans le CRM — <span style="color:var(--gold);cursor:pointer" onclick="showTab(\'crm\')">Ajouter des prospects →</span></div>';}
+    else{
+      const sc={'PROSPECT':'var(--text2)','QUALIFIÉ':'var(--blue)','DÉMO':'var(--purple)','NÉGOCIATION':'var(--yellow)','SIGNÉ':'var(--green)'};
+      pEl.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${Object.entries(ps).map(([s,c])=>c>0?`<div onclick="showTab('crm')" style="cursor:pointer;background:var(--bg3);border:1px solid ${sc[s]};border-radius:6px;padding:8px 14px;text-align:center"><div style="font-size:18px;font-weight:800;color:${sc[s]}">${c}</div><div style="font-size:10px;color:var(--text2);text-transform:uppercase">${s}</div></div>`:'').join('')}
+        <div style="background:var(--bg3);border:1px solid rgba(63,185,80,.3);border-radius:6px;padding:8px 14px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--gold)">${formatAmount(mrr.potentialMRR)}</div><div style="font-size:10px;color:var(--text2)">MRR POTENTIEL</div></div>
+      </div>`;
+    }
+  }
+}
+
+async function autoCategorizePending() {
+  const uncategorized=DB.transactions.filter(t=>!t.category||t.category==='Autre');
+  if(!uncategorized.length){toast('Toutes les transactions sont déjà catégorisées','info');return;}
+  const btn=document.getElementById('btn-auto-categorize');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Catégorisation...';}
+  try {
+    const sample=uncategorized.slice(0,30).map(t=>({id:t.id,desc:t.description,amount:t.amount,type:t.type}));
+    const prompt=`Tu es un comptable expert pour OPPIN (Abidjan). Catégorise ces transactions bancaires.
+Catégories disponibles: Maintenance, Ventes, Livraisons, Salaires, Loyer, Fournitures, Investissement, Fiscalité, Marketing, Télécommunications, Carburant, Banque, Autre.
+Transactions: ${JSON.stringify(sample)}
+Réponds UNIQUEMENT en JSON: [{"id":id,"category":"catégorie"}]`;
+    const raw=await callGemini(prompt);
+    let results;
+    try{const mx=raw.match(/\[[\s\S]*\]/);
+results=JSON.parse(mx?mx[0]:raw);}catch(e){results=null;}
+    if(results&&Array.isArray(results)){
+      let count=0;
+      results.forEach(r=>{const t=DB.transactions.find(x=>x.id===r.id);if(t&&r.category){t.category=r.category;count++;}});
+      saveDB();renderTransactions();
+      toast(`${count} transactions catégorisées par IA ✅`,'success');
+    } else { toast('Erreur catégorisation IA','error'); }
+  } catch(e){toast(`Erreur: ${e.message}`,'error');}
+  if(btn){btn.disabled=false;btn.textContent='🏷️ Auto-catégoriser (IA)';}
+}
+
+</script>
+
+</body>
+</html>
