@@ -407,6 +407,9 @@ pre{white-space:pre-wrap;font-family:inherit}
       <div class="nav-item" data-tab="invoices" onclick="showTab('invoices')">
         <span class="nav-item-icon">🧾</span> Factures
       </div>
+      <div class="nav-item" data-tab="devis" onclick="showTab('devis')">
+        <span class="nav-item-icon">📄</span> Devis INOVON
+      </div>
       <div class="nav-item" data-tab="expenses" onclick="showTab('expenses')">
         <span class="nav-item-icon">💳</span> Dépenses
         <span class="nav-item-badge" style="background:var(--bg4);color:var(--text2)" id="expenses-count">0</span>
@@ -2217,10 +2220,20 @@ pre{white-space:pre-wrap;font-family:inherit}
           <div class="card-title">👁️ Aperçu — Facture INOVON</div>
           <div id="inv-preview" style="background:#fff;border-radius:8px;padding:20px;color:#1a1a1a;font-family:Arial,sans-serif;font-size:12px;min-height:300px">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #D4A843">
-              <div>
-                <div style="font-size:20px;font-weight:900;color:#D4A843">⚡ INOVON</div>
-                <div style="font-size:10px;color:#666">Sécurité électronique · OPPIN Group</div>
-                <div style="font-size:10px;color:#666;margin-top:4px">Abidjan, Côte d'Ivoire</div>
+              <div style="display:flex;align-items:center;gap:12px">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 280" width="48" height="61">
+                  <path d="M22 95 Q110 12 198 95" stroke="#0d1c60" stroke-width="26" fill="none" stroke-linecap="round"/>
+                  <path d="M46 96 Q110 58 174 96" stroke="white" stroke-width="9" fill="none"/>
+                  <path d="M46 96 L110 76 L110 205 Q70 184 48 148 Z" fill="#0d1c60"/>
+                  <path d="M174 96 L110 76 L110 205 Q150 184 172 148 Z" fill="#1a80d4"/>
+                  <text x="110" y="238" font-family="Arial Black,Arial,sans-serif" font-size="26" font-weight="900" fill="#0d1c60" text-anchor="middle" letter-spacing="5">INOVON</text>
+                  <rect x="8" y="245" width="204" height="22" fill="#0d1c60" rx="4"/>
+                  <text x="110" y="261" font-family="Arial,sans-serif" font-size="11" fill="white" text-anchor="middle" letter-spacing="2">Sécurité Électronique</text>
+                </svg>
+                <div>
+                  <div style="font-size:10px;color:#666">OPPIN Group · Abidjan, Côte d'Ivoire</div>
+                  <div style="font-size:10px;color:#666;margin-top:2px">albanngoran85@gmail.com</div>
+                </div>
               </div>
               <div style="text-align:right">
                 <div style="font-size:16px;font-weight:800;color:#1a1a1a" id="inv-prev-num">FAC-INOVON-2026-001</div>
@@ -2263,6 +2276,92 @@ pre{white-space:pre-wrap;font-family:inherit}
         </table>
       </div>
     </div><!-- /pane-invoices -->
+
+    <!-- ============================
+         TAB: DEVIS INOVON
+         ============================ -->
+    <div class="tab-pane" id="pane-devis">
+      <div class="section-header">
+        <div>
+          <div class="section-title">📄 Générateur de Devis INOVON</div>
+          <div class="section-sub">Offres commerciales professionnelles · Logo officiel · Impression PDF one-click</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn-outline" onclick="resetDevis()">🔄 Nouveau devis</button>
+          <button class="btn-gold" onclick="saveAndPrintDevis()">🖨️ Sauvegarder &amp; Imprimer</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:420px 1fr;gap:16px;margin-bottom:16px">
+        <!-- FORMULAIRE -->
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="card">
+            <div class="card-title">👤 Client</div>
+            <div class="form-group">
+              <label>Depuis le CRM</label>
+              <select id="dev-client-select" onchange="fillDevisFromCRM(this.value)">
+                <option value="">-- Choisir un client --</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Nom / Entreprise</label><input type="text" id="dev-client" placeholder="Résidence Palm Beach" oninput="liveDevisPreview()"></div>
+            <div class="form-group"><label>Adresse</label><input type="text" id="dev-address" placeholder="Cocody, Abidjan" oninput="liveDevisPreview()"></div>
+            <div class="form-group"><label>Contact / Tél</label><input type="text" id="dev-contact" placeholder="M. Koné — 07 00 00 00 00" oninput="liveDevisPreview()"></div>
+            <div class="form-group"><label>Email</label><input type="email" id="dev-email" placeholder="contact@example.com" oninput="liveDevisPreview()"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">📋 Référence &amp; Validité</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div class="form-group"><label>N° devis</label><input type="text" id="dev-number" placeholder="DEV-INOVON-2026-001" oninput="liveDevisPreview()"></div>
+              <div class="form-group"><label>Date</label><input type="date" id="dev-date" oninput="liveDevisPreview()"></div>
+            </div>
+            <div class="form-group">
+              <label>Validité</label>
+              <select id="dev-validity" onchange="liveDevisPreview()">
+                <option value="30">30 jours</option>
+                <option value="15">15 jours</option>
+                <option value="60">60 jours</option>
+                <option value="90">90 jours</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">🛡️ Prestations</div>
+            <div id="dev-lines"></div>
+            <button class="btn-outline" style="width:100%;margin-top:10px;font-size:12px" onclick="addDevisLine()">+ Ajouter une prestation</button>
+          </div>
+
+          <div class="card">
+            <div class="card-title">📝 Notes &amp; Conditions</div>
+            <textarea id="dev-notes" rows="4" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px;color:var(--text);font-size:12px;resize:vertical" placeholder="Ex: Devis valable 30 jours · Paiement 50% à la commande · Installation incluse dans le forfait · Garantie matériel 2 ans" oninput="liveDevisPreview()"></textarea>
+          </div>
+        </div>
+
+        <!-- APERCU PRINT-READY -->
+        <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
+          <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+            <div class="card-title" style="margin:0">👁️ Aperçu — Devis officiel INOVON</div>
+            <button class="btn-gold" onclick="saveAndPrintDevis()">🖨️ PDF</button>
+          </div>
+          <div id="dev-preview" style="background:#fff;flex:1;overflow-y:auto;padding:0">
+            <!-- Généré dynamiquement -->
+          </div>
+        </div>
+      </div>
+
+      <!-- HISTORIQUE -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div class="card-title">📁 Devis émis <span id="dev-count" style="font-size:12px;color:var(--text2)">(0)</span></div>
+          <button class="btn-outline" style="font-size:11px" onclick="clearDevisHistory()">🗑️ Vider l'historique</button>
+        </div>
+        <table>
+          <thead><tr><th>N°</th><th>Client</th><th>Montant TTC</th><th>Date</th><th>Validité</th><th>Statut</th><th>Action</th></tr></thead>
+          <tbody id="dev-table"><tr><td colspan="7" class="text-muted" style="text-align:center;padding:16px">Aucun devis émis</td></tr></tbody>
+        </table>
+      </div>
+    </div><!-- /pane-devis -->
 
     <!-- ============================
          TAB: SCENARIO BUILDER
@@ -3040,10 +3139,13 @@ function showTab(tab) {
       market:'Intelligence Marché',brvm:'BRVM Watch',fraud:'Anti-Fraude',reporting:'Reporting',
       inovon:'INOVON Engine',forecast:'Forecast 13 Semaines',collection:'Recouvrement',crm:'CRM INOVON',
       briefing:'Briefing CEO',pnl:'P&L BUs',contracts:'Contrats',fiscal:'Fiscal CI',
-      dataanalyst:'Data Analyst',troprapide:'TROPRAPIDE',invoices:'Factures',
+      dataanalyst:'Data Analyst',troprapide:'TROPRAPIDE',invoices:'Factures',devis:'Devis INOVON',
       scenario:'Scénarios',churn:'Churn Radar'};
     titleEl.textContent = T[tab] || tab;
   }
+  // Init lazy par onglet
+  if (tab === 'devis') setTimeout(initDevis, 50);
+  if (tab === 'invoices') setTimeout(populateInvoiceCRM, 50);
 }
 
 // ============================================================
@@ -6945,6 +7047,366 @@ function generateBatchInvoices() {
 }
 
 // ============================================================
+// ENGINE: DEVIS INOVON
+// ============================================================
+
+const INOVON_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 280" width="90" height="115">
+  <path d="M22 95 Q110 12 198 95" stroke="#0d1c60" stroke-width="26" fill="none" stroke-linecap="round"/>
+  <path d="M46 96 Q110 58 174 96" stroke="white" stroke-width="9" fill="none"/>
+  <path d="M46 96 L110 76 L110 205 Q70 184 48 148 Z" fill="#0d1c60"/>
+  <path d="M174 96 L110 76 L110 205 Q150 184 172 148 Z" fill="#1a80d4"/>
+  <text x="110" y="238" font-family="Arial Black,Arial,sans-serif" font-size="26" font-weight="900" fill="#0d1c60" text-anchor="middle" letter-spacing="5">INOVON</text>
+  <rect x="8" y="245" width="204" height="22" fill="#0d1c60" rx="4"/>
+  <text x="110" y="261" font-family="Arial,sans-serif" font-size="11" fill="white" text-anchor="middle" letter-spacing="2">Sécurité Électronique</text>
+</svg>`;
+
+let devisLines = [];
+
+function initDevis() {
+  // Date par défaut
+  const today = new Date().toISOString().split('T')[0];
+  const el = document.getElementById('dev-date');
+  if (el) el.value = today;
+
+  // Numéro automatique
+  const numEl = document.getElementById('dev-number');
+  if (numEl) numEl.value = getNextDevisNumber();
+
+  // Populate CRM select
+  const sel = document.getElementById('dev-client-select');
+  if (sel && DB.crmLeads) {
+    sel.innerHTML = '<option value="">-- Choisir un client --</option>';
+    DB.crmLeads.forEach((l, i) => {
+      sel.innerHTML += `<option value="${i}">${l.name} — ${l.offer || ''}</option>`;
+    });
+  }
+
+  // Lignes par défaut
+  if (!devisLines.length) {
+    devisLines = [
+      { desc: 'Maintenance Confort — Vidéosurveillance (4 caméras HD + NVR)', qty: 1, unit: 25000 }
+    ];
+  }
+  renderDevisLines();
+  renderDevisHistory();
+  liveDevisPreview();
+}
+
+function getNextDevisNumber() {
+  const year = new Date().getFullYear();
+  const count = (DB.devisHistory || []).length + 1;
+  return `DEV-INOVON-${year}-${String(count).padStart(3,'0')}`;
+}
+
+function fillDevisFromCRM(idx) {
+  if (idx === '') return;
+  const lead = DB.crmLeads[parseInt(idx)];
+  if (!lead) return;
+  document.getElementById('dev-client').value = lead.name || '';
+  document.getElementById('dev-address').value = (lead.zone ? lead.zone + ', Abidjan' : 'Abidjan, Côte d\'Ivoire');
+  document.getElementById('dev-contact').value = lead.contact || '';
+
+  // Pré-remplir la prestation selon l'offre
+  const offerMap = { 'Essentiel': 15000, 'Confort': 25000, 'Premium': 50000 };
+  const key = Object.keys(offerMap).find(k => (lead.offer || '').includes(k));
+  if (key) {
+    devisLines = [{ desc: `Maintenance ${key} — Contrat mensuel`, qty: 1, unit: offerMap[key] }];
+    renderDevisLines();
+  }
+  liveDevisPreview();
+}
+
+function renderDevisLines() {
+  const container = document.getElementById('dev-lines');
+  if (!container) return;
+  container.innerHTML = '';
+  devisLines.forEach((line, i) => {
+    container.innerHTML += `
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:8px">
+        <div class="form-group" style="margin-bottom:6px">
+          <label style="font-size:10px">Désignation</label>
+          <input type="text" value="${line.desc}" oninput="devisLines[${i}].desc=this.value;liveDevisPreview()" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:6px;color:var(--text);font-size:12px">
+        </div>
+        <div style="display:grid;grid-template-columns:80px 1fr auto;gap:8px;align-items:end">
+          <div class="form-group" style="margin:0">
+            <label style="font-size:10px">Qté</label>
+            <input type="number" value="${line.qty}" min="1" oninput="devisLines[${i}].qty=+this.value;liveDevisPreview()" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:6px;color:var(--text);font-size:12px">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label style="font-size:10px">Prix unitaire HT (FCFA)</label>
+            <input type="number" value="${line.unit}" oninput="devisLines[${i}].unit=+this.value;liveDevisPreview()" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:6px;color:var(--text);font-size:12px">
+          </div>
+          <button onclick="removeDevisLine(${i})" style="background:var(--red);color:white;border:none;border-radius:4px;padding:6px 10px;cursor:pointer;font-size:11px;height:30px">✕</button>
+        </div>
+        <div style="text-align:right;font-size:11px;color:var(--text2);margin-top:4px">
+          Total HT: <strong style="color:var(--text)">${formatFCFA(line.qty * line.unit)}</strong>
+        </div>
+      </div>`;
+  });
+}
+
+function addDevisLine() {
+  const offers = [
+    { desc: 'Maintenance Essentiel — Alarme intrusion + télésurveillance', qty: 1, unit: 15000 },
+    { desc: 'Maintenance Confort — Vidéosurveillance HD + alarme', qty: 1, unit: 25000 },
+    { desc: 'Maintenance Premium — Système complet + intervention prioritaire', qty: 1, unit: 50000 },
+    { desc: 'Installation matériel — Caméra HD Hikvision (fourniture + pose)', qty: 1, unit: 75000 },
+    { desc: 'Câblage réseau et mise en service', qty: 1, unit: 35000 },
+  ];
+  const existing = devisLines.length;
+  const next = offers[existing % offers.length] || { desc: 'Prestation complémentaire', qty: 1, unit: 0 };
+  devisLines.push({...next});
+  renderDevisLines();
+  liveDevisPreview();
+}
+
+function removeDevisLine(i) {
+  devisLines.splice(i, 1);
+  renderDevisLines();
+  liveDevisPreview();
+}
+
+function getDevisTotals() {
+  const ht = devisLines.reduce((sum, l) => sum + (l.qty * l.unit), 0);
+  const tva = Math.round(ht * 0.18);
+  const ttc = ht + tva;
+  return { ht, tva, ttc };
+}
+
+function liveDevisPreview() {
+  const client = document.getElementById('dev-client')?.value || '—';
+  const address = document.getElementById('dev-address')?.value || '';
+  const contact = document.getElementById('dev-contact')?.value || '';
+  const email = document.getElementById('dev-email')?.value || '';
+  const num = document.getElementById('dev-number')?.value || 'DEV-INOVON-2026-001';
+  const date = document.getElementById('dev-date')?.value || '';
+  const validity = document.getElementById('dev-validity')?.value || '30';
+  const notes = document.getElementById('dev-notes')?.value || 'Devis valable ' + validity + ' jours à compter de la date d\'émission.\nPaiement : 50% à la commande, 50% à la livraison.\nInstallation et mise en service incluses.';
+
+  const dateStr = date ? new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : '—';
+
+  // Calcul validité
+  let validStr = '—';
+  if (date) {
+    const d = new Date(date);
+    d.setDate(d.getDate() + parseInt(validity));
+    validStr = d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+  }
+
+  const { ht, tva, ttc } = getDevisTotals();
+
+  const linesHTML = devisLines.map((l, i) => `
+    <tr style="border-bottom:1px solid #f0f0f0">
+      <td style="padding:8px 10px;font-size:12px">${i + 1}</td>
+      <td style="padding:8px 10px;font-size:12px">${l.desc}</td>
+      <td style="padding:8px 10px;text-align:center;font-size:12px">${l.qty}</td>
+      <td style="padding:8px 10px;text-align:right;font-size:12px">${formatFCFA(l.unit)}</td>
+      <td style="padding:8px 10px;text-align:right;font-weight:700;font-size:12px">${formatFCFA(l.qty * l.unit)}</td>
+    </tr>`).join('');
+
+  const preview = document.getElementById('dev-preview');
+  if (!preview) return;
+
+  preview.innerHTML = `
+    <div style="padding:32px;font-family:Arial,sans-serif;color:#1a1a1a;font-size:12px;min-height:700px">
+      <!-- EN-TÊTE -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:3px solid #0d1c60;margin-bottom:24px">
+        <div style="display:flex;align-items:center;gap:16px">
+          ${INOVON_LOGO_SVG}
+          <div>
+            <div style="font-size:10px;color:#666;margin-top:6px">OPPIN Group — Sécurité électronique</div>
+            <div style="font-size:10px;color:#666">Abidjan, Côte d'Ivoire</div>
+            <div style="font-size:10px;color:#666">albanngoran85@gmail.com</div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:22px;font-weight:900;color:#0d1c60;letter-spacing:2px">DEVIS</div>
+          <div style="font-size:14px;font-weight:700;color:#1a80d4;margin-top:2px">${num}</div>
+          <div style="font-size:11px;color:#666;margin-top:6px">Date : <strong>${dateStr}</strong></div>
+          <div style="font-size:11px;color:#666">Validité : <strong>${validStr}</strong></div>
+        </div>
+      </div>
+
+      <!-- CLIENT -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
+        <div style="background:#f8f9fc;border-radius:6px;padding:14px">
+          <div style="font-size:10px;font-weight:700;color:#0d1c60;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Émetteur</div>
+          <div style="font-weight:700;font-size:13px">INOVON — OPPIN Group</div>
+          <div style="color:#555;font-size:11px;margin-top:3px">Sécurité électronique</div>
+          <div style="color:#555;font-size:11px">Abidjan, Côte d'Ivoire</div>
+          <div style="color:#555;font-size:11px">albanngoran85@gmail.com</div>
+        </div>
+        <div style="background:#f8f9fc;border-radius:6px;padding:14px">
+          <div style="font-size:10px;font-weight:700;color:#0d1c60;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Destinataire</div>
+          <div style="font-weight:700;font-size:13px">${client}</div>
+          ${address ? `<div style="color:#555;font-size:11px;margin-top:3px">${address}</div>` : ''}
+          ${contact ? `<div style="color:#555;font-size:11px">${contact}</div>` : ''}
+          ${email ? `<div style="color:#555;font-size:11px">${email}</div>` : ''}
+        </div>
+      </div>
+
+      <!-- TABLEAU PRESTATIONS -->
+      <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
+        <thead>
+          <tr style="background:#0d1c60;color:white">
+            <th style="padding:10px;text-align:left;font-size:11px;width:40px">#</th>
+            <th style="padding:10px;text-align:left;font-size:11px">Désignation</th>
+            <th style="padding:10px;text-align:center;font-size:11px;width:60px">Qté</th>
+            <th style="padding:10px;text-align:right;font-size:11px;width:130px">Prix unitaire HT</th>
+            <th style="padding:10px;text-align:right;font-size:11px;width:130px">Total HT</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${linesHTML || '<tr><td colspan="5" style="padding:16px;text-align:center;color:#999">Aucune prestation ajoutée</td></tr>'}
+        </tbody>
+      </table>
+
+      <!-- TOTAUX -->
+      <div style="display:flex;justify-content:flex-end;margin-bottom:24px">
+        <div style="width:260px">
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee;font-size:12px">
+            <span style="color:#555">Sous-total HT</span>
+            <span style="font-weight:600">${formatFCFA(ht)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee;font-size:12px">
+            <span style="color:#555">TVA (18%)</span>
+            <span style="font-weight:600">${formatFCFA(tva)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:10px;background:#0d1c60;border-radius:4px;margin-top:4px">
+            <span style="color:white;font-weight:700;font-size:13px">TOTAL TTC</span>
+            <span style="color:#fff;font-weight:900;font-size:15px">${formatFCFA(ttc)}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- NOTES -->
+      ${notes ? `
+      <div style="background:#f8f9fc;border-left:3px solid #1a80d4;padding:12px 16px;border-radius:0 6px 6px 0;margin-bottom:24px;font-size:11px;color:#444;white-space:pre-line">${notes}</div>` : ''}
+
+      <!-- SIGNATURES -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:32px;padding-top:20px;border-top:1px solid #eee">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#0d1c60;margin-bottom:8px">BON POUR ACCORD — Client</div>
+          <div style="font-size:10px;color:#888;margin-bottom:4px">Nom et signature :</div>
+          <div style="height:50px;border-bottom:1px solid #ccc;margin-bottom:4px"></div>
+          <div style="font-size:10px;color:#888">Date : ____________________</div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#0d1c60;margin-bottom:8px">POUR INOVON — OPPIN Group</div>
+          <div style="font-size:10px;color:#888;margin-bottom:4px">Signature et cachet :</div>
+          <div style="height:50px;border-bottom:1px solid #ccc;margin-bottom:4px"></div>
+          <div style="font-size:10px;color:#888">Date : ____________________</div>
+        </div>
+      </div>
+
+      <!-- PIED DE PAGE -->
+      <div style="margin-top:24px;padding-top:12px;border-top:2px solid #0d1c60;display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:10px;color:#888">INOVON — Sécurité Électronique · OPPIN Group</div>
+        <div style="font-size:10px;color:#888">Abidjan, Côte d'Ivoire · albanngoran85@gmail.com</div>
+        <div>${INOVON_LOGO_SVG.replace('width="90" height="115"','width="32" height="41"')}</div>
+      </div>
+    </div>`;
+}
+
+function saveAndPrintDevis() {
+  const client = document.getElementById('dev-client')?.value || 'Client';
+  const num = document.getElementById('dev-number')?.value || getNextDevisNumber();
+  const date = document.getElementById('dev-date')?.value || new Date().toISOString().split('T')[0];
+  const validity = document.getElementById('dev-validity')?.value || '30';
+  const { ttc } = getDevisTotals();
+
+  // Sauvegarder dans l'historique
+  if (!DB.devisHistory) DB.devisHistory = [];
+  DB.devisHistory.unshift({ id: Date.now(), number: num, client, ttc, date, validity, status: 'ÉMIS' });
+  saveDB();
+  renderDevisHistory();
+
+  // Mettre à jour le numéro suivant
+  const numEl = document.getElementById('dev-number');
+  // (ne pas changer le numéro affiché)
+
+  // Imprimer
+  liveDevisPreview();
+  const preview = document.getElementById('dev-preview');
+  if (!preview) return;
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Devis ${num}</title>
+    <style>
+      body{margin:0;padding:0;font-family:Arial,sans-serif;background:#fff;color:#1a1a1a}
+      @media print{body{margin:0}button{display:none!important}}
+      @page{size:A4;margin:15mm}
+    </style>
+  </head><body>${preview.innerHTML}
+  <script>window.onload=()=>{setTimeout(()=>window.print(),300);}<\/script>
+  </body></html>`);
+  w.document.close();
+  toast(`Devis ${num} sauvegardé ✅`, 'success');
+}
+
+function resetDevis() {
+  devisLines = [{ desc: 'Maintenance Confort — Vidéosurveillance HD + alarme', qty: 1, unit: 25000 }];
+  document.getElementById('dev-client').value = '';
+  document.getElementById('dev-address').value = '';
+  document.getElementById('dev-contact').value = '';
+  document.getElementById('dev-email').value = '';
+  document.getElementById('dev-notes').value = '';
+  document.getElementById('dev-number').value = getNextDevisNumber();
+  document.getElementById('dev-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('dev-client-select').value = '';
+  renderDevisLines();
+  liveDevisPreview();
+  toast('Nouveau devis initialisé', 'info');
+}
+
+function renderDevisHistory() {
+  const tbody = document.getElementById('dev-table');
+  const countEl = document.getElementById('dev-count');
+  const list = DB.devisHistory || [];
+  if (countEl) countEl.textContent = `(${list.length})`;
+  if (!tbody) return;
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="text-muted" style="text-align:center;padding:16px">Aucun devis émis</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(d => {
+    const dateStr = d.date ? new Date(d.date).toLocaleDateString('fr-FR') : '—';
+    let validExp = '—';
+    if (d.date) {
+      const exp = new Date(d.date);
+      exp.setDate(exp.getDate() + parseInt(d.validity || 30));
+      const now = new Date();
+      validExp = exp < now ? '<span style="color:var(--red)">Expiré</span>' : exp.toLocaleDateString('fr-FR');
+    }
+    const statusColor = d.status === 'ACCEPTÉ' ? 'var(--green)' : d.status === 'REFUSÉ' ? 'var(--red)' : '#D4A843';
+    return `<tr>
+      <td style="font-size:11px">${d.number}</td>
+      <td>${d.client}</td>
+      <td style="font-weight:700;color:var(--gold)">${formatFCFA(d.ttc)}</td>
+      <td>${dateStr}</td>
+      <td>${validExp}</td>
+      <td><span style="color:${statusColor};font-size:11px;font-weight:600">${d.status}</span></td>
+      <td style="display:flex;gap:4px">
+        <button class="btn-outline" style="font-size:10px;padding:3px 7px" onclick="updateDevisStatus('${d.id}','ACCEPTÉ')">✅</button>
+        <button class="btn-outline" style="font-size:10px;padding:3px 7px" onclick="updateDevisStatus('${d.id}','REFUSÉ')">❌</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function updateDevisStatus(id, status) {
+  const d = (DB.devisHistory || []).find(x => String(x.id) === String(id));
+  if (d) { d.status = status; saveDB(); renderDevisHistory(); toast(`Devis marqué : ${status}`, 'success'); }
+}
+
+function clearDevisHistory() {
+  if (!confirm('Vider tout l\'historique des devis ?')) return;
+  DB.devisHistory = [];
+  saveDB();
+  renderDevisHistory();
+  toast('Historique vidé', 'info');
+}
+
+// ============================================================
 // ENGINE #7 — SCENARIO BUILDER
 // ============================================================
 
@@ -6985,322 +7447,4 @@ function updateScenario() {
         <div style="font-size:11px;color:${trMargin>=0?'var(--green)':'var(--red)'}">${deliveries}/j · CA ${formatAmount(trMonthlyRevenue)}</div>
       </div>
       <div style="background:var(--bg3);border-radius:6px;padding:10px;border:1px solid rgba(63,185,80,.3)">
-        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;margin-bottom:4px">Recouvrement récupéré</div>
-        <div style="font-size:20px;font-weight:800;color:var(--green)">${formatAmount(recoveryAmount)}</div>
-        <div style="font-size:11px;color:var(--text2)">${recoveryPct}% de ${formatAmount(overdueTotal)}</div>
-      </div>
-      <div style="background:rgba(212,168,67,.1);border-radius:6px;padding:10px;border:1px solid rgba(212,168,67,.5)">
-        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;margin-bottom:4px">CASH TOTAL / MOIS</div>
-        <div style="font-size:22px;font-weight:900;color:var(--gold)">${formatAmount(monthlyTotal)}</div>
-        <div style="font-size:11px;color:var(--text2)">ARR projeté: ${formatAmount(netMRR*12)}</div>
-      </div>
-    </div>
-    <div style="margin-top:10px;font-size:12px;color:var(--text2)">Churn: -${formatAmount(churnLoss)}/mois · Nouveaux contrats: +${formatAmount(newMRR)}/mois</div>`;
-  renderScenarioChart(baseMRR,newMRR,churnRate,trMargin,recoveryAmount,horizon);
-}
-
-function renderScenarioChart(baseMRR,newMRR,churnRate,trMargin,recoveryAmount,horizon) {
-  const el=document.getElementById('sc-chart'); if(!el) return;
-  const labels=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
-  const now=new Date();let currentMRR=baseMRR;const months=[];
-  for(let i=0;i<horizon;i++){
-    const idx=(now.getMonth()+i)%12;
-    currentMRR=currentMRR+newMRR-Math.round(currentMRR*churnRate/100);
-    const total=currentMRR+trMargin+(i===0?recoveryAmount:Math.round(recoveryAmount*0.3));
-    months.push({label:labels[idx],mrr:currentMRR,total});
-  }
-  const maxVal=Math.max(...months.map(m=>m.total),1);
-  el.innerHTML=`<div style="width:100%;padding:0 4px">
-    <div style="display:flex;align-items:flex-end;gap:4px;height:140px">
-      ${months.map(m=>{
-        const pctT=Math.round(m.total/maxVal*100);
-        const pctM=m.total>0?Math.round(m.mrr/m.total*pctT):0;
-        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
-          <div style="font-size:9px;color:var(--gold);font-weight:700;margin-bottom:2px">${m.total>=1000000?(m.total/1000000).toFixed(1)+'M':(m.total>=1000?(m.total/1000).toFixed(0)+'K':m.total)}</div>
-          <div style="width:100%;flex:1;display:flex;flex-direction:column;justify-content:flex-end">
-            <div style="width:100%;height:${pctT}%;background:rgba(212,168,67,.25);border-radius:3px 3px 0 0;position:relative;min-height:3px">
-              <div style="position:absolute;bottom:0;width:100%;height:${m.mrr>0?Math.min(pctM,100)+'%':'0'};background:var(--gold);border-radius:2px 2px 0 0;min-height:2px"></div>
-            </div>
-          </div>
-          <div style="font-size:9px;color:var(--text2);margin-top:2px">${m.label}</div>
-        </div>`;
-      }).join('')}
-    </div>
-    <div style="display:flex;gap:12px;justify-content:center;margin-top:8px;font-size:11px;color:var(--text2)">
-      <span><span style="display:inline-block;width:10px;height:10px;background:var(--gold);border-radius:2px;margin-right:3px"></span>MRR</span>
-      <span><span style="display:inline-block;width:10px;height:10px;background:rgba(212,168,67,.25);border-radius:2px;margin-right:3px"></span>Cash total</span>
-    </div>
-  </div>`;
-}
-
-async function runScenarioAI() {
-  const result=document.getElementById('sc-ai-result'); if(!result) return;
-  result.innerHTML='<div class="loading-row"><div class="spinner"></div> Analyse du scénario en cours...</div>';
-  try {
-    const contracts=document.getElementById('sc-contracts')?.value||0;
-    const premium=document.getElementById('sc-premium')?.value||20;
-    const churn=document.getElementById('sc-churn')?.value||2;
-    const deliveries=document.getElementById('sc-deliveries')?.value||17;
-    const ticket=document.getElementById('sc-ticket')?.value||4200;
-    const recovery=document.getElementById('sc-recovery')?.value||50;
-    const horizon=document.getElementById('sc-horizon')?.value||3;
-    const mrr=computeMRR();
-    const prompt=`CFO IA CHARLE — OPPIN (Côte d'Ivoire). CEO présente ce scénario sur ${horizon} mois:
-- INOVON: +${contracts} contrats, ${premium}% Premium, churn ${churn}%/mois. MRR actuel: ${formatAmount(mrr.total)}, target ${formatAmount(mrr.target)}
-- TROPRAPIDE: ${deliveries} livraisons/j (BEP=17), ticket ${ticket} FCFA
-- Recouvrement: ${recovery}% des créances en retard
-JSON: {"verdict":"GO|ATTENTION|RISQUE","resume":"bilan 2 phrases max","biggest_lever":"levier cash prioritaire","biggest_risk":"risque principal","actions":["action semaine 1","action 2","action 3"],"realistic_cash":montant_FCFA,"recommendation":"décision CEO GO/TEST/NO GO + justification 1 ligne"}`;
-    const raw=await callGemini(prompt);let a;
-    try{const mx=raw.match(/\{[\s\S]*\}/);a=JSON.parse(mx?mx[0]:raw);}catch(e){a=null;}
-    if(a){
-      const sc={'GO':'green','ATTENTION':'yellow','RISQUE':'red'};
-      result.innerHTML=`
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
-          <span style="background:rgba(63,185,80,.1);color:var(--${sc[a.verdict]||'blue'});border-radius:10px;padding:4px 14px;font-size:14px;font-weight:800">${a.verdict}</span>
-          <span style="font-size:13px;flex:1">${a.resume||''}</span>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-          ${a.biggest_lever?`<div style="background:rgba(63,185,80,.07);border-radius:6px;padding:8px;font-size:12px"><strong style="color:var(--green)">🚀 Levier:</strong> ${a.biggest_lever}</div>`:''}
-          ${a.biggest_risk?`<div style="background:rgba(248,81,73,.07);border-radius:6px;padding:8px;font-size:12px"><strong style="color:var(--red)">⚠️ Risque:</strong> ${a.biggest_risk}</div>`:''}
-        </div>
-        ${(a.actions||[]).map((t,i)=>`<div style="background:var(--bg3);border-radius:4px;padding:8px;margin-bottom:6px;font-size:13px"><span style="color:var(--gold);font-weight:700">${i+1}.</span> ${t}</div>`).join('')}
-        ${a.realistic_cash?`<div style="background:var(--bg3);border-radius:6px;padding:8px;font-size:13px;margin-top:6px">💰 Cash réaliste/mois: <strong style="color:var(--gold)">${formatAmount(a.realistic_cash)}</strong></div>`:''}
-        ${a.recommendation?`<div style="background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.3);border-radius:6px;padding:10px;font-size:13px;margin-top:8px"><strong style="color:var(--gold)">→ Décision CEO:</strong> ${a.recommendation}</div>`:''}`;
-    } else { result.innerHTML=`<div style="background:var(--bg3);border-radius:6px;padding:12px;font-size:13px;white-space:pre-wrap">${raw}</div>`; }
-  } catch(e){result.innerHTML=`<div class="text-red">❌ ${e.message}</div>`;}
-}
-
-// ============================================================
-// ENGINE #8 — CHURN RADAR / RÉTENTION INOVON
-// ============================================================
-
-function computeChurnScore(lead) {
-  let score=0;const now=Date.now();
-  const lastContact=lead.lastContact||lead.createdAt;
-  const daysSince=lastContact?Math.floor((now-new Date(lastContact))/864e5):999;
-  if(daysSince>90)score+=40;else if(daysSince>60)score+=30;else if(daysSince>30)score+=20;else if(daysSince>14)score+=10;
-  const hasLate=(DB.receivables||[]).some(r=>{const d=Math.floor((now-new Date(r.dueDate||r.date))/864e5);return r.clientName===lead.name&&d>30;});
-  if(hasLate)score+=30;
-  const age=lead.createdAt?Math.floor((now-new Date(lead.createdAt))/864e5):0;
-  if(age<30)score+=15;else if(age<90)score+=8;
-  if((lead.offer||'').includes('Essentiel'))score+=15;else if((lead.offer||'').includes('Confort'))score+=8;
-  return Math.min(100,score);
-}
-
-function renderChurnGrid() {
-  const el=document.getElementById('churn-grid'); if(!el) return;
-  const signed=(DB.crmLeads||[]).filter(l=>l.stage==='SIGNÉ');
-  if(!signed.length){
-    el.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🛡️</div><div class="empty-text">Ajoutez des clients signés dans le CRM INOVON pour voir le score de risque</div></div>';
-    ['churn-safe','churn-watch','churn-risk','churn-mrr-risk'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='—';});
-    return;
-  }
-  let safe=0,watch=0,risk=0,mrrRisk=0;
-  const offerMap={'Essentiel':15000,'Confort':25000,'Premium':50000};
-  const cards=signed.map(lead=>{
-    const score=computeChurnScore(lead);
-    let level,color;
-    if(score<=25){level='STABLE';color='var(--green)';safe++;}
-    else if(score<=55){level='SURVEILLER';color='var(--yellow)';watch++;}
-    else{level='RISQUE ÉLEVÉ';color='var(--red)';risk++;}
-    const offerKey=Object.keys(offerMap).find(k=>(lead.offer||'').includes(k));
-    const mrr=offerKey?offerMap[offerKey]:25000;
-    if(score>55)mrrRisk+=mrr;
-    const daysSince=lead.lastContact?Math.floor((Date.now()-new Date(lead.lastContact))/864e5):null;
-    return `<div class="card" style="border:1px solid ${color}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-        <div><div style="font-weight:700;font-size:14px">${lead.name}</div><div style="font-size:11px;color:var(--text2)">${lead.offer||'—'} · ${lead.zone||'—'}</div></div>
-        <div style="text-align:right"><div style="font-size:22px;font-weight:900;color:${color}">${score}</div><div style="font-size:10px;color:${color};font-weight:700">${level}</div></div>
-      </div>
-      <div style="background:var(--bg3);border-radius:3px;height:6px;overflow:hidden;margin-bottom:8px">
-        <div style="width:${score}%;height:100%;background:${color};border-radius:3px;transition:width .4s"></div>
-      </div>
-      <div style="font-size:11px;color:var(--text2);margin-bottom:8px">${daysSince!==null?`Dernier contact: il y a ${daysSince}j`:'Pas de date de contact'}</div>
-      ${score>40?`<button class="btn-sm" style="width:100%;color:var(--gold)" onclick="waRelance(${lead.id})">📱 Relancer WhatsApp</button>`:''}
-    </div>`;
-  });
-  el.innerHTML=cards.join('');
-  const e=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
-  e('churn-safe',safe);e('churn-watch',watch);e('churn-risk',risk);e('churn-mrr-risk',formatAmount(mrrRisk));
-}
-
-async function runChurnAnalysis() {
-  const result=document.getElementById('churn-ai-result'); if(!result) return;
-  result.innerHTML='<div class="loading-row"><div class="spinner"></div> Analyse churn en cours...</div>';
-  try {
-    const signed=(DB.crmLeads||[]).filter(l=>l.stage==='SIGNÉ');
-    if(!signed.length){result.innerHTML='<div class="text-muted">Aucun client signé dans le CRM</div>';return;}
-    const risks=signed.map(l=>({name:l.name,score:computeChurnScore(l),offer:l.offer})).filter(l=>l.score>40).sort((a,b)=>b.score-a.score);
-    const mrr=computeMRR();
-    const prompt=`CFO IA CHARLE — expert rétention INOVON (sécurité électronique, Abidjan). Contrats récurrents 15K/25K/50K FCFA/mois. Churn = ennemi n°1 du MRR.
-MRR actuel: ${formatAmount(mrr.total)} / Target: ${formatAmount(mrr.target)}. Clients à risque: ${JSON.stringify(risks)}. Total clients: ${signed.length}.
-JSON: {"churn_risk_level":"FAIBLE|MODÉRÉ|ÉLEVÉ|CRITIQUE","mrr_at_risk":montant_FCFA,"top_priority_client":"nom client le plus urgent","retention_script":"script relance tél 3 phrases","actions":["action anti-churn aujourd'hui","action cette semaine","action ce mois"],"prevention_tip":"conseil structurel anti-churn INOVON","recommendation":"verdict CEO 2 lignes"}`;
-    const raw=await callGemini(prompt);let a;
-    try{const mx=raw.match(/\{[\s\S]*\}/);a=JSON.parse(mx?mx[0]:raw);}catch(e){a=null;}
-    if(a){
-      const sc={'FAIBLE':'green','MODÉRÉ':'yellow','ÉLEVÉ':'red','CRITIQUE':'red'};
-      result.innerHTML=`
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
-          <span style="background:rgba(248,81,73,.1);color:var(--${sc[a.churn_risk_level]||'red'});border-radius:10px;padding:2px 10px;font-size:12px;font-weight:700">Risque: ${a.churn_risk_level}</span>
-          ${a.mrr_at_risk?`<span style="font-size:13px;color:var(--red)">MRR à risque: ${formatAmount(a.mrr_at_risk)}</span>`:''}
-        </div>
-        ${a.top_priority_client?`<div style="background:rgba(248,81,73,.07);border-radius:6px;padding:8px;font-size:12px;margin-bottom:8px">🎯 <strong>Priorité 1:</strong> Appeler <strong>${a.top_priority_client}</strong> aujourd'hui</div>`:''}
-        ${a.retention_script?`<div style="background:var(--bg3);border-radius:6px;padding:10px;font-size:12px;margin-bottom:8px;font-style:italic;color:var(--text2)">📞 "${a.retention_script}"</div>`:''}
-        ${(a.actions||[]).map((t,i)=>`<div style="background:var(--bg3);border-radius:4px;padding:8px;margin-bottom:6px;font-size:13px"><span style="color:var(--red);font-weight:700">${i+1}.</span> ${t}</div>`).join('')}
-        ${a.prevention_tip?`<div style="background:rgba(63,185,80,.07);border-radius:6px;padding:8px;font-size:12px;margin-top:8px">💡 <strong>Prévention:</strong> ${a.prevention_tip}</div>`:''}
-        ${a.recommendation?`<div style="background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.3);border-radius:6px;padding:10px;font-size:13px;margin-top:8px"><strong style="color:var(--gold)">→ Verdict CEO:</strong> ${a.recommendation}</div>`:''}`;
-    } else { result.innerHTML=`<div style="background:var(--bg3);border-radius:6px;padding:12px;font-size:13px;white-space:pre-wrap">${raw}</div>`; }
-  } catch(e){result.innerHTML=`<div class="text-red">❌ ${e.message}</div>`;}
-}
-
-// ============================================================
-// ENGINE #9 — WAR ROOM CEO
-// ============================================================
-
-function refreshWarRoom() {
-  const now=new Date();
-  const dateEl=document.getElementById('wr-date');
-  if(dateEl)dateEl.textContent=now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' · '+now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-  // 1. Cash
-  const buCash=getCashByBU();
-  const totalCash=Object.values(buCash).reduce((s,v)=>s+(v.balance||0),0);
-  const wcash=document.getElementById('wr-cash');const wcs=document.getElementById('wr-cash-status');
-  if(wcash){wcash.textContent=formatAmount(totalCash);wcash.style.color=totalCash<ALERT_THRESHOLDS.cashMin?'var(--red)':'var(--gold)';}
-  if(wcs)wcs.textContent=totalCash<ALERT_THRESHOLDS.cashMin?'⚠️ SOUS LE SEUIL D\'ALERTE':'✅ Niveau acceptable';
-  // 2. MRR
-  const mrr=computeMRR();
-  const wmrr=document.getElementById('wr-mrr');const wmg=document.getElementById('wr-mrr-gap');
-  if(wmrr){wmrr.textContent=formatAmount(mrr.total);wmrr.style.color=mrr.total>=mrr.target?'var(--green)':'var(--yellow)';}
-  if(wmg){if(mrr.total>=mrr.target){wmg.textContent='✅ Target atteinte';wmg.style.color='var(--green)';}else{wmg.textContent=`Gap: -${formatAmount(mrr.gap)} (${mrr.gapContracts} contrats)`;wmg.style.color='var(--yellow)';}}
-  // 3. Livraisons
-  if(!DB.trDeliveries)DB.trDeliveries=[];
-  const tm=now.toISOString().substring(0,7);
-  const mDel=DB.trDeliveries.filter(d=>d.date.startsWith(tm));
-  const totDel=mDel.reduce((s,d)=>s+d.total,0);
-  const avgDel=mDel.length?Math.round(totDel/mDel.length):0;
-  const wdel=document.getElementById('wr-deliveries');const wdavg=document.getElementById('wr-deliveries-avg');
-  if(wdel){wdel.textContent=totDel;wdel.style.color=avgDel>=17?'var(--green)':avgDel>=12?'var(--yellow)':'var(--blue)';}
-  if(wdavg)wdavg.textContent=`moy. ${avgDel}/jour ${avgDel>=17?'✅':avgDel>0?'⚠️':'—'}`;
-  // 4. Créances
-  const overdueRecs=(DB.receivables||[]).filter(r=>{const d=Math.floor((Date.now()-new Date(r.dueDate||r.date))/864e5);return d>ALERT_THRESHOLDS.overdueMinDays&&r.status!=='PAYÉ';});
-  const overdueTotal=overdueRecs.reduce((s,r)=>s+(r.amount||0),0);
-  const wo=document.getElementById('wr-overdue');const woc=document.getElementById('wr-overdue-count');
-  if(wo){wo.textContent=formatAmount(overdueTotal);wo.style.color=overdueTotal>0?'var(--red)':'var(--green)';}
-  if(woc)woc.textContent=overdueRecs.length>0?`${overdueRecs.length} client(s) en retard`:'Aucun retard ✅';
-  // 5. Fiscal
-  const today=now.toISOString().split('T')[0];
-  const nextFiscal=(DB.fiscalEvents||[]).filter(f=>f.status==='À PAYER'&&f.deadline>=today).sort((a,b)=>a.deadline.localeCompare(b.deadline))[0];
-  const wf=document.getElementById('wr-fiscal');const wfl=document.getElementById('wr-fiscal-label');
-  if(wf){if(nextFiscal){const d=Math.ceil((new Date(nextFiscal.deadline)-now)/864e5);wf.textContent=`J-${d}`;wf.style.color=d<=5?'var(--red)':d<=14?'var(--yellow)':'var(--green)';if(wfl)wfl.textContent=`${nextFiscal.type} — ${formatAmount(nextFiscal.amount)}`;}else{wf.textContent='—';wf.style.color='var(--green)';if(wfl)wfl.textContent='Aucune échéance imminente ✅';}}
-  // 6. CRM relances
-  const crmDue=(DB.crmLeads||[]).filter(l=>{if(l.stage==='PERDU'||l.stage==='SIGNÉ')return false;const last=l.lastContact||l.createdAt;if(!last)return true;return Math.floor((Date.now()-new Date(last))/864e5)>ALERT_THRESHOLDS.crmSilentDays;});
-  const wcrm=document.getElementById('wr-crm-due');if(wcrm){wcrm.textContent=crmDue.length;wcrm.style.color=crmDue.length>0?'var(--purple)':'var(--green)';}
-  // Top 3 actions
-  const actions=[];
-  if(overdueTotal>0)actions.push({p:1,icon:'💰',text:`Recouvrer ${formatAmount(overdueTotal)} — ${overdueRecs.length} client(s)`,tab:'collection',color:'var(--red)'});
-  if(crmDue.length>0)actions.push({p:2,icon:'📞',text:`Relancer ${crmDue.length} prospect(s) CRM (>${ALERT_THRESHOLDS.crmSilentDays}j sans contact)`,tab:'crm',color:'var(--purple)'});
-  if(mrr.gap>0)actions.push({p:3,icon:'📈',text:`Signer ${mrr.gapContracts} contrat(s) → target MRR ${formatAmount(mrr.target)}`,tab:'crm',color:'var(--gold)'});
-  if(avgDel<17&&avgDel>0)actions.push({p:3,icon:'🚴',text:`TROPRAPIDE: +${17-avgDel} livraisons/j pour le BEP`,tab:'troprapide',color:'var(--blue)'});
-  if(nextFiscal&&Math.ceil((new Date(nextFiscal.deadline)-now)/864e5)<=14)actions.push({p:2,icon:'🧾',text:`Échéance fiscale J-${Math.ceil((new Date(nextFiscal.deadline)-now)/864e5)}: ${nextFiscal.type}`,tab:'fiscal',color:'var(--yellow)'});
-  if(totalCash<ALERT_THRESHOLDS.cashMin)actions.push({p:1,icon:'🚨',text:`CASH CRITIQUE: ${formatAmount(totalCash)} < seuil`,tab:'cash',color:'var(--red)'});
-  const top3=actions.sort((a,b)=>a.p-b.p).slice(0,3);
-  const actionsEl=document.getElementById('wr-actions');
-  if(actionsEl)actionsEl.innerHTML=top3.length?top3.map(a=>`<div onclick="showTab('${a.tab}')" style="cursor:pointer;background:var(--bg3);border-left:3px solid ${a.color};border-radius:0 6px 6px 0;padding:10px;margin-bottom:8px"><div style="font-weight:700;font-size:13px">${a.icon} ${a.text}</div><div style="font-size:11px;color:var(--text2);margin-top:2px">→ Voir détails</div></div>`).join(''):'<div style="color:var(--green);font-size:13px;padding:10px">✅ Tableau de bord au vert !</div>';
-  // Alertes actives
-  const activeAlerts=(DB.alerts||[]).filter(a=>!a.acknowledged).slice(0,5);
-  const alertsEl=document.getElementById('wr-alerts-list');
-  if(alertsEl)alertsEl.innerHTML=activeAlerts.length?activeAlerts.map(a=>`<div style="padding:8px;border-bottom:1px solid var(--border);font-size:12px"><div style="font-weight:600">${a.title}</div><div style="color:var(--text2)">${a.message}</div></div>`).join(''):'<div style="color:var(--text2);font-size:12px;padding:8px">Aucune alerte active ✅</div>';
-  // Pipeline snapshot
-  const pl=DB.crmLeads||[];
-  const ps={'PROSPECT':0,'QUALIFIÉ':0,'DÉMO':0,'NÉGOCIATION':0,'SIGNÉ':0};
-  pl.forEach(l=>{if(ps[l.stage]!==undefined)ps[l.stage]++;});
-  const pEl=document.getElementById('wr-pipeline');
-  if(pEl){
-    const tot=Object.values(ps).reduce((s,v)=>s+v,0);
-    if(!tot){pEl.innerHTML='<div style="color:var(--text2);font-size:12px">Aucun lead dans le CRM — <span style="color:var(--gold);cursor:pointer" onclick="showTab(\'crm\')">Ajouter des prospects →</span></div>';}
-    else{
-      const sc={'PROSPECT':'var(--text2)','QUALIFIÉ':'var(--blue)','DÉMO':'var(--purple)','NÉGOCIATION':'var(--yellow)','SIGNÉ':'var(--green)'};
-      pEl.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${Object.entries(ps).map(([s,c])=>c>0?`<div onclick="showTab('crm')" style="cursor:pointer;background:var(--bg3);border:1px solid ${sc[s]};border-radius:6px;padding:8px 14px;text-align:center"><div style="font-size:18px;font-weight:800;color:${sc[s]}">${c}</div><div style="font-size:10px;color:var(--text2);text-transform:uppercase">${s}</div></div>`:'').join('')}
-        <div style="background:var(--bg3);border:1px solid rgba(63,185,80,.3);border-radius:6px;padding:8px 14px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--gold)">${formatAmount(mrr.potentialMRR)}</div><div style="font-size:10px;color:var(--text2)">MRR POTENTIEL</div></div>
-      </div>`;
-    }
-  }
-}
-
-// ============================================================
-// AUTO-CATEGORIZER IA — Post-import CSV
-// ============================================================
-
-async function autoCategorizePending() {
-  const uncategorized=DB.transactions.filter(t=>!t.category||t.category==='Autre');
-  if(!uncategorized.length){toast('Toutes les transactions sont déjà catégorisées','info');return;}
-  const btn=document.getElementById('btn-auto-categorize');
-  if(btn){btn.disabled=true;btn.textContent='⏳ Catégorisation...';}
-  try {
-    const sample=uncategorized.slice(0,30).map(t=>({id:t.id,desc:t.description,amount:t.amount,type:t.type}));
-    const prompt=`Tu es un comptable expert pour OPPIN (Abidjan). Catégorise ces transactions bancaires.
-Catégories disponibles: Maintenance, Ventes, Livraisons, Salaires, Loyer, Fournitures, Investissement, Fiscalité, Marketing, Télécommunications, Carburant, Banque, Autre.
-Transactions: ${JSON.stringify(sample)}
-Réponds UNIQUEMENT en JSON: [{"id":id,"category":"catégorie"}]`;
-    const raw=await callGemini(prompt);
-    let results;
-    try{const mx=raw.match(/\[[\s\S]*\]/);results=JSON.parse(mx?mx[0]:raw);}catch(e){results=null;}
-    if(results&&Array.isArray(results)){
-      let count=0;
-      results.forEach(r=>{const t=DB.transactions.find(x=>x.id===r.id);if(t&&r.category){t.category=r.category;count++;}});
-      saveDB();renderTransactions();
-      toast(`${count} transactions catégorisées par IA ✅`,'success');
-    } else { toast('Erreur catégorisation IA','error'); }
-  } catch(e){toast(`Erreur: ${e.message}`,'error');}
-  if(btn){btn.disabled=false;btn.textContent='🏷️ Auto-catégoriser (IA)';}
-}
-
-
-// ============================================================
-// AI PANEL (CHARLE ADVISOR — Right Panel)
-// ============================================================
-async function aiPanelSend() {
-  const input = document.getElementById('ai-panel-input');
-  const q = input?.value?.trim();
-  if (!q) return;
-  input.value = '';
-  aiPanelAddMsg(q, 'user');
-  const thinking = aiPanelAddMsg('⏳ Analyse en cours...', 'ai', true);
-  try {
-    const context = getOPPINContext ? getOPPINContext() : '';
-    const raw = await callGemini(q, context);
-    thinking.remove();
-    aiPanelAddMsg(raw, 'ai');
-  } catch(e) {
-    thinking.remove();
-    aiPanelAddMsg('❌ ' + e.message, 'ai');
-  }
-}
-function aiPanelAsk(q) {
-  const input = document.getElementById('ai-panel-input');
-  if (input) { input.value = q; aiPanelSend(); }
-}
-function aiPanelAddMsg(text, role, temp = false) {
-  const container = document.getElementById('ai-panel-messages');
-  if (!container) return null;
-  const d = document.createElement('div');
-  d.className = 'ai-msg ' + role;
-  const now = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
-  d.innerHTML = '<div class="ai-bubble">' + (text||'').replace(/\n/g,'<br>') + '</div><div class="ai-time">' + now + '</div>';
-  container.appendChild(d);
-  container.scrollTop = container.scrollHeight;
-  return d;
-}
-// Mirror header-mrr to topbar
-function syncTopbarMRR() {
-  const v = document.getElementById('header-mrr')?.textContent;
-  const t = document.getElementById('header-mrr-topbar');
-  if (t && v) t.textContent = v;
-}
-const _origRenderAll = typeof renderAll !== 'undefined' ? renderAll : null;
-
-</script>
-
-</body>
-</html>
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;margin-bottom:
