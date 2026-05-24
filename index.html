@@ -3680,13 +3680,17 @@ function clearAllAlerts() {
 // TELEGRAM
 // ============================================================
 async function sendTelegram(text) {
-  const { tgToken, tgChat } = DB.config;
-  if (!tgToken || !tgChat) return false;
+  // Fallback hardcodé pour les devices sans setup (ex: techniciens INOVON)
+  const _ALERT_TOK = '8685665089:AAElxK05PAnERZWuiu-B9Ls5DKppOj6LPCs';
+  const _ALERT_CHT = '7711031858';
+  const token = DB.config.tgToken || _ALERT_TOK;
+  const chat  = DB.config.tgChat  || _ALERT_CHT;
+  if (!token || !chat) return false;
   try {
-    const res = await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: tgChat, text, parse_mode: 'HTML' })
+      body: JSON.stringify({ chat_id: chat, text, parse_mode: 'HTML' })
     });
     return res.ok;
   } catch(e) { return false; }
