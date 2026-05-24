@@ -3275,15 +3275,14 @@ function applyAuthSession(user) {
     const kpiRow = document.querySelector('.sidebar-kpi-row');
     if (kpiRow) kpiRow.style.display = 'none';
   }
-  if (DB.config.setupDone) {
+  // Lancement app ou setup
+  if (user.role === 'tech') {
+    startApp('tech');
+  } else if (DB.config.setupDone) {
     startApp(user.role);
     if (DB.config.firebaseCfg) initFirebase(DB.config.firebaseCfg);
-  } else if (user.role === 'ceo') {
-    document.getElementById('setup-screen').style.display = 'flex';
   } else {
-    const errEl = document.getElementById('auth-error');
-    if (errEl) { errEl.style.display = 'block'; errEl.textContent = 'CHARLE non configuré. Contacter le CEO.'; }
-    document.getElementById('auth-overlay').style.display = 'flex';
+    document.getElementById('setup-screen').style.display = 'flex';
   }
 }
 
