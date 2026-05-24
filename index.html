@@ -10,6 +10,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
@@ -2378,7 +2380,8 @@ pre{white-space:pre-wrap;font-family:inherit}
         </div>
         <div style="display:flex;gap:8px;align-items:center">
           <button class="btn-outline" onclick="resetDevis()">🔄 Nouveau devis</button>
-          <button class="btn-gold" onclick="saveAndPrintDevis()">🖨️ Sauvegarder &amp; Imprimer</button>
+          <button class="btn-outline" onclick="saveAndPrintDevis()" style="color:var(--text2)">🖨️ Imprimer</button>
+          <button class="btn-gold" onclick="downloadDevisPDF()" id="btn-download-devis">⬇️ Télécharger PDF</button>
         </div>
       </div>
 
@@ -7544,6 +7547,58 @@ function saveAndPrintDevis() {
   </body></html>`);
   w.document.close();
   toast(`Devis ${num} sauvegardé ✅`, 'success');
+}
+
+async function downloadDevisPDF() {
+  liveDevisPreview();
+  const preview = document.getElementById('dev-preview');
+  if (!preview) { toast('Aperçu non disponible', 'error'); return; }
+  const num = document.getElementById('dev-number')?.value || getNextDevisNumber();
+  const clientRaw = document.getElementById('dev-client')?.value || 'Client';
+  const clientSafe = clientRaw.replace(/[^a-zA-Z0-9_\-]/g, '_');
+  const filename = 'Devis_' + num + '_' + clientSafe + '.pdf';
+  const { ttc } = getDevisTotals();
+  const date = document.getElementById('dev-date')?.value || new Date().toISOString().split('T')[0];
+  const validity = document.getElementById('dev-validity')?.value || '30';
+  if (!DB.devisHistory) DB.devisHistory = [];
+  const alreadySaved = DB.devisHistory.find(d => d.number === num);
+  if (!alreadySaved) {
+    DB.devisHistory.unshift({ id: Date.now(), number: num, client: clientRaw, ttc, date, validity, status: 'ÉMIS' });
+    saveDB(); renderDevisHistory();
+  }
+  const btn = document.getElementById('btn-download-devis');
+  if (btn) { btn.textContent = '⏳ Génération…'; btn.disabled = true; }
+  try {
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:794px;background:#ffffff;padding:0;z-index:-1';
+    wrapper.innerHTML = preview.innerHTML;
+    document.body.appendChild(wrapper);
+    const canvas = await html2canvas(wrapper, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, width: 794, windowWidth: 794 });
+    document.body.removeChild(wrapper);
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgW = pageW;
+    const imgH = (canvas.height * pageW) / canvas.width;
+    let posY = 0;
+    while (posY < imgH) {
+      if (posY > 0) pdf.addPage();
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.97), 'JPEG', 0, -posY, imgW, imgH);
+      posY += pageH;
+    }
+    pdf.save(filename);
+    toast('✅ ' + filename + ' téléchargé', 'success');
+    try {
+      const su = JSON.parse(sessionStorage.getItem('charleAuth') || '{}');
+      if (su.role === 'tech' && !alreadySaved) {
+        const now = new Date().toLocaleString('fr-FR', { timeZone: 'Africa/Abidjan' });
+        const lignes = devisLines.filter(l => l.desc).map(l => '  • ' + l.desc + ' × ' + l.qty + ' → <b>' + formatFCFA(l.qty * l.unit) + '<\/b>').join('\n');
+        sendTelegramAlert('📄 <b>NOUVEAU DEVIS INOVON<\/b>\n\n🔖 Numéro : <b>' + num + '<\/b>\n👤 Client : <b>' + clientRaw + '<\/b>\n💰 Montant : <b>' + formatFCFA(ttc) + '<\/b>\n📅 Date : ' + date + '\n👷 Technicien : ' + (su.name || 'Technicien') + '\n\n' + (lignes ? '<b>Prestations :<\/b>\n' + lignes + '\n\n' : '') + '⏱ ' + now);
+      }
+    } catch(e) {}
+  } catch(err) { toast('Erreur PDF : ' + err.message, 'error'); }
+  finally { if (btn) { btn.textContent = '⬇️ Télécharger PDF'; btn.disabled = false; } }
 }
 
 function resetDevis() {
