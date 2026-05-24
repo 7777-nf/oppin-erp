@@ -2936,6 +2936,20 @@ function initAutoSync() {
   if (localStorage.getItem(TG_AUTO_KEY) === '1') startAutoSync();
 }
 
+// ── Alerte Telegram instantanée (devis technicien → CEO) ──
+async function sendTelegramAlert(msg) {
+  const token = DB.config.tgToken;
+  const chat  = DB.config.tgChat;
+  if (!token || !chat) return;
+  try {
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chat, text: msg, parse_mode: 'HTML' })
+    });
+  } catch(e) { console.warn('TG alert failed', e); }
+}
+
 // ============================================================
 // FIREBASE SYNC ENGINE
 // ============================================================
@@ -7427,6 +7441,26 @@ function saveAndPrintDevis() {
   DB.devisHistory.unshift({ id: Date.now(), number: num, client, ttc, date, validity, status: 'ÉMIS' });
   saveDB();
   renderDevisHistory();
+
+  // ── Alerte Telegram CEO si devis produit par un technicien ──
+  try {
+    const sessionUser = JSON.parse(sessionStorage.getItem('charleAuth') || '{}');
+    if (sessionUser.role === 'tech') {
+      const now = new Date().toLocaleString('fr-FR', { timeZone: 'Africa/Abidjan' });
+      const lignes = devisLines.filter(l => l.desc).map(l =>
+        `  • ${l.desc} × ${l.qty} → <b>${formatFCFA(l.qty * l.unit)}</b>`
+      ).join('\n');
+      const msg = `📄 <b>NOUVEAU DEVIS INOVON</b>\n\n` +
+        `🔖 Numéro : <b>${num}</b>\n` +
+        `👤 Client : <b>${client}</b>\n` +
+        `💰 Montant : <b>${formatFCFA(ttc)}</b>\n` +
+        `📅 Date : ${date}\n` +
+        `👷 Technicien : ${sessionUser.name || 'tech@inovon.com'}\n\n` +
+        (lignes ? `<b>Prestations :</b>\n${lignes}\n\n` : '') +
+        `⏱ ${now}`;
+      sendTelegramAlert(msg);
+    }
+  } catch(e) {}
 
   // Mettre à jour le numéro suivant
   const numEl = document.getElementById('dev-number');
