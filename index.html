@@ -7319,6 +7319,7 @@ function generateInvoice() {
   const offerNames={'15000':'Maintenance Essentiel','25000':'Maintenance Confort','50000':'Maintenance Premium','custom':'Prestation personnalisée'};
   const invoice={id:Date.now(),number:num,client,address,contact,date,period,ht,tva:Math.round(ht*0.18),ttc:ht+Math.round(ht*0.18),offer:offerNames[offerVal]||'Prestation',detail,createdAt:new Date().toISOString(),status:'ÉMISE'};
   DB.invoices.push(invoice);saveDB();renderInvoiceTable();
+  saveDocToFirestore(invoice.number, invoice.client, invoice.ttc, invoice.date, 'facture');
   const numEl=document.getElementById('inv-number');if(numEl)numEl.value=getNextInvoiceNumber();
   toast(`Facture ${num} créée ✅`,'success');
 }
@@ -7505,9 +7506,22 @@ function makeVerifyHash(ref, client, montant, date) {
 }
 
 function makeVerifyURL(ref, client, montant, date, type) {
-  const hash = makeVerifyHash(ref, client, montant, date);
-  const payload = btoa(unescape(encodeURIComponent(JSON.stringify({r:ref,c:client,m:Math.round(montant),d:date,t:type,h:hash}))));
-  return 'https://oppin-erp.vercel.app/?verify=' + payload;
+  return 'https://oppin-erp.vercel.app/?verify=' + encodeURIComponent(ref);
+}
+
+async function saveDocToFirestore(ref, client, montant, date, type) {
+  if (!firestoreDB) return;
+  try {
+    await firestoreDB.collection('oppin_verify').doc(ref).set({
+      ref: ref,
+      client: client,
+      montant: Math.round(montant),
+      date: date,
+      type: type,
+      emetteur: 'OPPIN SARL - INOVON',
+      createdAt: new Date().toISOString()
+    });
+  } catch(e) { console.warn('saveDocToFirestore:', e); }
 }
 
 async function getQRDataURL(text) {
@@ -7674,6 +7688,7 @@ function saveAndPrintDevis() {
   DB.devisHistory.unshift({ id: Date.now(), number: num, client, ttc, date, validity, status: 'ÉMIS' });
   saveDB();
   renderDevisHistory();
+  saveDocToFirestore(num, client, ttc, date, 'devis');
 
   // ── Alerte Telegram CEO si devis produit par un technicien ──
   try {
@@ -7733,6 +7748,7 @@ async function downloadDevisPDF() {
   if (!alreadySaved) {
     DB.devisHistory.unshift({ id: Date.now(), number: num, client: clientRaw, ttc, date, validity, status: 'ÉMIS' });
     saveDB(); renderDevisHistory();
+    saveDocToFirestore(num, clientRaw, ttc, date, 'devis');
   }
   const btn = document.getElementById('btn-download-devis');
   if (btn) { btn.textContent = '⏳ Génération…'; btn.disabled = true; }
@@ -8138,34 +8154,53 @@ results=JSON.parse(mx?mx[0]:raw);}catch(e){results=null;}
   const params = new URLSearchParams(window.location.search);
   const verifyParam = params.get('verify');
   if (!verifyParam) return;
-  window.addEventListener('DOMContentLoaded', function() {
+  const ref = decodeURIComponent(verifyParam);
+
+  window.addEventListener('DOMContentLoaded', async function() {
     const app = document.getElementById('app');
     const vp  = document.getElementById('verify-page');
     if (app) app.style.display = 'none';
     if (vp)  vp.style.display  = 'block';
-    try {
-      const data = JSON.parse(decodeURIComponent(escape(atob(verifyParam))));
-      const SECRET = 'OPPIN-INOVON-2026';
-      const str = SECRET + '|' + data.r + '|' + String(Math.round(data.m)) + '|' + data.d;
-      let h = 0x811c9dc5;
-      for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = (h * 0x01000193) >>> 0; }
-      const computedHash = h.toString(36).toUpperCase().padStart(7,'0').substring(0, 7);
-      document.getElementById('verify-loading').style.display = 'none';
-      if (computedHash === data.h) {
-        const fmt = function(n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ') + ' FCFA'; };
-        const dateStr = data.d ? new Date(data.d).toLocaleDateString('fr-FR', {day:'2-digit',month:'long',year:'numeric'}) : data.d;
-        document.getElementById('vfy-type').textContent    = (data.t === 'facture') ? 'Facture' : 'Devis';
-        document.getElementById('vfy-ref').textContent     = data.r;
-        document.getElementById('vfy-client').textContent  = data.c;
-        document.getElementById('vfy-montant').textContent = fmt(data.m);
-        document.getElementById('vfy-date').textContent    = dateStr;
-        document.getElementById('verify-valid').style.display = 'block';
-      } else {
-        document.getElementById('verify-invalid').style.display = 'block';
-      }
-    } catch(e) {
+
+    function showInvalid() {
       document.getElementById('verify-loading').style.display = 'none';
       document.getElementById('verify-invalid').style.display = 'block';
+    }
+    function showValid(data) {
+      const fmt = function(n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ') + ' FCFA'; };
+      const dateStr = data.date ? new Date(data.date).toLocaleDateString('fr-FR', {day:'2-digit',month:'long',year:'numeric'}) : (data.date || '—');
+      document.getElementById('vfy-type').textContent    = (data.type === 'facture') ? 'Facture' : 'Devis';
+      document.getElementById('vfy-ref').textContent     = data.ref;
+      document.getElementById('vfy-client').textContent  = data.client;
+      document.getElementById('vfy-montant').textContent = fmt(data.montant);
+      document.getElementById('vfy-date').textContent    = dateStr;
+      document.getElementById('verify-loading').style.display = 'none';
+      document.getElementById('verify-valid').style.display = 'block';
+    }
+
+    try {
+      // Load Firebase config from localStorage
+      const stored = localStorage.getItem('charle_db_v3');
+      if (!stored) { showInvalid(); return; }
+      const db = JSON.parse(stored);
+      const fbCfg = db && db.config && db.config.firebaseCfg;
+      if (!fbCfg) { showInvalid(); return; }
+
+      // Init Firebase
+      let cfg = fbCfg.trim().replace(/const\s+\w+\s*=\s*/g, '').replace(/;$/, '').trim();
+      const parsed = JSON.parse(cfg);
+      let fbApp;
+      if (!firebase.apps.length) fbApp = firebase.initializeApp(parsed);
+      else fbApp = firebase.apps[0];
+      const fdb = firebase.firestore();
+
+      // Read document
+      const snap = await fdb.collection('oppin_verify').doc(ref).get();
+      if (!snap.exists) { showInvalid(); return; }
+      showValid(snap.data());
+    } catch(e) {
+      console.error('verify error:', e);
+      showInvalid();
     }
   });
 })();
