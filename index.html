@@ -11,6 +11,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<canvas id="_bc_canvas" style="display:none;position:fixed;top:-9999px"></canvas>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -2330,6 +2332,7 @@ pre{white-space:pre-wrap;font-family:inherit}
               <div style="text-align:right">
                 <div style="font-size:16px;font-weight:800;color:#1a1a1a" id="inv-prev-num">FAC-INOVON-2026-001</div>
                 <div style="font-size:10px;color:#666" id="inv-prev-date">—</div>
+              <div style="margin-top:6px"><img id="inv-prev-barcode" style="height:36px;max-width:150px;display:block;margin-left:auto" alt=""></div>
               </div>
             </div>
             <div style="margin-bottom:16px">
@@ -7222,6 +7225,7 @@ function updateInvoicePreview() {
   const tva=Math.round(ht*0.18),ttc=ht+tva;
   const e=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
   e('inv-prev-num',num);e('inv-prev-date',date);e('inv-prev-client',client);e('inv-prev-address',address);
+  const bcEl=document.getElementById('inv-prev-barcode');if(bcEl){const burl=getBarcodeDataURL(num);bcEl.src=burl||'';bcEl.style.display=burl?'block':'none';}
   e('inv-prev-desc',detail||desc);e('inv-prev-ht',formatAmount(ht));e('inv-prev-subtotal',formatAmount(ht));
   e('inv-prev-tva',formatAmount(tva));e('inv-prev-ttc',formatAmount(ttc));
   const cg=document.getElementById('inv-custom-group');if(cg)cg.style.display=offerVal==='custom'?'block':'none';
@@ -7418,6 +7422,15 @@ function getDevisTotals() {
   return { ht, tva, ttc };
 }
 
+function getBarcodeDataURL(value) {
+  try {
+    var canvas = document.getElementById('_bc_canvas');
+    if (!canvas || !window.JsBarcode) return '';
+    JsBarcode(canvas, value, {format:'CODE128',width:2,height:48,displayValue:true,fontSize:12,margin:4,background:'#ffffff',lineColor:'#000000'});
+    return canvas.toDataURL('image/png');
+  } catch(e) { return ''; }
+}
+
 function liveDevisPreview() {
   const client = document.getElementById('dev-client')?.value || '—';
   const address = document.getElementById('dev-address')?.value || '';
@@ -7469,6 +7482,7 @@ function liveDevisPreview() {
           <div style="font-size:14px;font-weight:700;color:#1a80d4;margin-top:2px">${num}</div>
           <div style="font-size:11px;color:#666;margin-top:6px">Date : <strong>${dateStr}</strong></div>
           <div style="font-size:11px;color:#666">Validité : <strong>${validStr}</strong></div>
+          <div style="margin-top:8px">${(function(){var u=getBarcodeDataURL(num);return u?'<img src="'+u+'" style="height:40px;max-width:160px;display:block;margin-left:auto" alt="barcode">':'';}())}</div>
         </div>
       </div>
 
