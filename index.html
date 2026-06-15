@@ -8200,22 +8200,23 @@ results=JSON.parse(mx?mx[0]:raw);}catch(e){results=null;}
     }
 
     try {
-      // Load Firebase config from localStorage
-      const stored = localStorage.getItem('charle_db_v3');
-      if (!stored) { showInvalid(); return; }
-      const db = JSON.parse(stored);
-      const fbCfg = db && db.config && db.config.firebaseCfg;
-      if (!fbCfg) { showInvalid(); return; }
+      // Config Firebase OPPIN integree directement
+      const OPPIN_FB_CONFIG = {
+        apiKey: 'AIzaSyBvIVa6atJlXUhBAA17YpG5wrf4xI7rGRQ',
+        authDomain: 'oppin-erp.firebaseapp.com',
+        projectId: 'oppin-erp',
+        storageBucket: 'oppin-erp.firebasestorage.app',
+        messagingSenderId: '435262840902',
+        appId: '1:435262840902:web:3e339fdbdd71170c25aa47'
+      };
 
-      // Init Firebase
-      let cfg = fbCfg.trim().replace(/const\s+\w+\s*=\s*/g, '').replace(/;$/, '').trim();
-      const parsed = JSON.parse(cfg);
+      // Init Firebase (eviter double init)
       let fbApp;
-      if (!firebase.apps.length) fbApp = firebase.initializeApp(parsed);
+      if (!firebase.apps.length) fbApp = firebase.initializeApp(OPPIN_FB_CONFIG);
       else fbApp = firebase.apps[0];
       const fdb = firebase.firestore();
 
-      // Read document
+      // Lire le document dans Firestore
       const snap = await fdb.collection('oppin_verify').doc(ref).get();
       if (!snap.exists) { showInvalid(); return; }
       showValid(snap.data());
