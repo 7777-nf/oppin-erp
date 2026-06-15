@@ -2110,6 +2110,8 @@ window._fbLoadDevis=function(){
 
 <!-- PDF EXPORT -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<canvas id="_bc_canvas" style="display:none"></canvas>
 <script>
 function drawInovonLogo(doc, x, y, size) {
   try {
@@ -2121,6 +2123,16 @@ function drawInovonLogo(doc, x, y, size) {
   }
 }
 
+function drawBarcode(doc, value, x, y, w, h) {
+  try {
+    var canvas = document.getElementById('_bc_canvas');
+    if (!canvas || !window.JsBarcode) return;
+    JsBarcode(canvas, value, {format:'CODE128', width:2, height:40, displayValue:true, fontSize:11, margin:4, background:'#ffffff', lineColor:'#000000'});
+    var img = canvas.toDataURL('image/png');
+    doc.addImage(img, 'PNG', x, y, w, h);
+  } catch(e) { console.warn('drawBarcode:', e); }
+}
+
 function drawOppinHeader(doc, lbl, ref, W, M) {
   var HDR = 36;  // hauteur section bleue principale
   var BAR = 9;   // hauteur bande basse noire
@@ -2159,6 +2171,8 @@ function drawOppinHeader(doc, lbl, ref, W, M) {
   doc.setTextColor(210, 225, 245);
   doc.setFontSize(6.5); doc.setFont('helvetica', 'normal');
   doc.text('RCCM N° CI-ABJ-03-2022-B12-06061 | CC N° 2244519E | Av. 17 Rue 24 Treichville | +225 01 72 23 33 33', W - 6, HDR + 6, {align: 'right'});
+  // Code-barres de la reference dans le coin droit de l en-tete
+  drawBarcode(doc, ref, W - M - 42, 2, 42, 18);
   return HDR + BAR; // retourne hauteur totale
 }
 
