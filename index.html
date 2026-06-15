@@ -7353,8 +7353,18 @@ function loadInvoiceForPrint(id) {
   updateInvoicePreview();showTab('invoices');
 }
 
-function printInvoice() {
+async function printInvoice() {
   updateInvoicePreview();
+  // Attendre le QR code
+  const invNum = document.getElementById('inv-number')?.value || '';
+  const invCli = document.getElementById('inv-client')?.value || '';
+  const invDat = document.getElementById('inv-date')?.value || '';
+  const invHt  = parseInt(document.getElementById('inv-offer')?.value) || 0;
+  const qrUrl2 = makeVerifyURL(invNum, invCli, invHt, invDat, 'facture');
+  const qrData2 = await getQRDataURL(qrUrl2);
+  const qrEl2 = document.getElementById('inv-prev-qr');
+  if (qrEl2 && qrData2) { qrEl2.src = qrData2; qrEl2.style.display = 'block'; }
+  await new Promise(r => setTimeout(r, 300));
   const preview=document.getElementById('inv-preview'); if(!preview) return;
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><title>Facture INOVON</title><style>body{margin:20px;font-family:Arial,sans-serif;background:#fff;color:#1a1a1a}@media print{body{margin:0}button{display:none}</style></head><body>${preview.innerHTML}<script>window.onload=()=>window.print();<\/script></body></html>`);
@@ -7753,6 +7763,13 @@ async function downloadDevisPDF() {
   const btn = document.getElementById('btn-download-devis');
   if (btn) { btn.textContent = '⏳ Génération…'; btn.disabled = true; }
   try {
+    // Attendre que le QR code soit genere avant de capturer
+    const qrUrl = makeVerifyURL(num, clientRaw, ttc, date, 'devis');
+    const qrDataUrl = await getQRDataURL(qrUrl);
+    const qrImg = document.getElementById('dev-qr-img');
+    if (qrImg && qrDataUrl) { qrImg.src = qrDataUrl; qrImg.style.display = 'block'; }
+    // Petite pause pour que l'image se charge dans le DOM
+    await new Promise(r => setTimeout(r, 400));
     const wrapper = document.createElement('div');
     wrapper.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:794px;background:#ffffff;padding:0;z-index:-1';
     wrapper.innerHTML = preview.innerHTML;
