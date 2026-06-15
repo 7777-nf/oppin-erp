@@ -11,8 +11,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
-<canvas id="_bc_canvas" style="display:none;position:fixed;top:-9999px"></canvas>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -440,6 +439,79 @@ pre{white-space:pre-wrap;font-family:inherit}
     </div>
     <button class="btn-primary" onclick="saveConfig()">⚡ Lancer CHARLE</button>
     <div class="setup-error" id="setup-error">Veuillez remplir les champs obligatoires (Groq Key, Telegram Token et Chat ID)</div>
+  </div>
+</div>
+
+<!-- VERIFICATION PAGE -->
+<div id="verify-page" style="display:none;min-height:100vh;background:#f0f4fa;font-family:Arial,sans-serif;padding:20px">
+  <div style="max-width:480px;margin:40px auto">
+    <div style="text-align:center;margin-bottom:28px">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 280" width="56" height="70">
+        <path d="M22 95 Q110 12 198 95" stroke="#0d1c60" stroke-width="26" fill="none" stroke-linecap="round"/>
+        <path d="M46 96 Q110 58 174 96" stroke="white" stroke-width="9" fill="none"/>
+        <path d="M46 96 L110 76 L110 205 Q70 184 48 148 Z" fill="#0d1c60"/>
+        <path d="M174 96 L110 76 L110 205 Q150 184 172 148 Z" fill="#1a80d4"/>
+        <text x="110" y="238" font-family="Arial Black,Arial,sans-serif" font-size="26" font-weight="900" fill="#0d1c60" text-anchor="middle" letter-spacing="5">INOVON</text>
+        <rect x="8" y="245" width="204" height="22" fill="#0d1c60" rx="4"/>
+        <text x="110" y="261" font-family="Arial,sans-serif" font-size="11" fill="white" text-anchor="middle" letter-spacing="2">Sécurité Électronique</text>
+      </svg>
+      <div style="font-size:11px;color:#666;margin-top:6px">OPPIN SARL — Vérification de document</div>
+    </div>
+
+    <div id="verify-result" style="background:#fff;border-radius:12px;box-shadow:0 2px 16px rgba(0,0,0,.08);padding:28px">
+      <div id="verify-loading" style="text-align:center;padding:20px;color:#666">
+        <div style="font-size:32px;margin-bottom:12px">⏳</div>
+        <div>Vérification en cours...</div>
+      </div>
+      <div id="verify-valid" style="display:none">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding:14px;background:#f0faf0;border-radius:8px;border-left:4px solid #22a72c">
+          <div style="font-size:28px">✅</div>
+          <div>
+            <div style="font-weight:700;color:#1a7020;font-size:15px">Document authentique</div>
+            <div style="font-size:12px;color:#4a7050;margin-top:2px">Ce document est émis et certifié par OPPIN SARL</div>
+          </div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <tr style="border-bottom:1px solid #f0f0f0">
+            <td style="padding:10px 4px;color:#666;width:40%">Type</td>
+            <td style="padding:10px 4px;font-weight:600;text-transform:uppercase" id="vfy-type">—</td>
+          </tr>
+          <tr style="border-bottom:1px solid #f0f0f0">
+            <td style="padding:10px 4px;color:#666">Référence</td>
+            <td style="padding:10px 4px;font-weight:700;color:#0d1c60;font-size:15px" id="vfy-ref">—</td>
+          </tr>
+          <tr style="border-bottom:1px solid #f0f0f0">
+            <td style="padding:10px 4px;color:#666">Client</td>
+            <td style="padding:10px 4px;font-weight:600" id="vfy-client">—</td>
+          </tr>
+          <tr style="border-bottom:1px solid #f0f0f0">
+            <td style="padding:10px 4px;color:#666">Montant</td>
+            <td style="padding:10px 4px;font-weight:700;color:#1a7020;font-size:15px" id="vfy-montant">—</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 4px;color:#666">Date</td>
+            <td style="padding:10px 4px" id="vfy-date">—</td>
+          </tr>
+        </table>
+        <div style="margin-top:20px;padding:12px;background:#f8f9fc;border-radius:6px;font-size:11px;color:#666;text-align:center">
+          Document émis par <strong>OPPIN SARL — INOVON Sécurité</strong><br>
+          +225 01 72 23 33 33 · Avenue 17, Rue 24 Treichville, Abidjan
+        </div>
+      </div>
+      <div id="verify-invalid" style="display:none">
+        <div style="display:flex;align-items:center;gap:12px;padding:14px;background:#fff5f5;border-radius:8px;border-left:4px solid #e03030">
+          <div style="font-size:28px">❌</div>
+          <div>
+            <div style="font-weight:700;color:#c02020;font-size:15px">Document non valide</div>
+            <div style="font-size:12px;color:#904040;margin-top:2px">Ce document ne peut pas être vérifié ou a été modifié.</div>
+          </div>
+        </div>
+        <div style="margin-top:16px;font-size:12px;color:#666;text-align:center">
+          Si vous avez reçu ce document d'OPPIN SARL, contactez-nous :<br>
+          <strong>+225 01 72 23 33 33</strong>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2332,7 +2404,7 @@ pre{white-space:pre-wrap;font-family:inherit}
               <div style="text-align:right">
                 <div style="font-size:16px;font-weight:800;color:#1a1a1a" id="inv-prev-num">FAC-INOVON-2026-001</div>
                 <div style="font-size:10px;color:#666" id="inv-prev-date">—</div>
-              <div style="margin-top:6px"><img id="inv-prev-barcode" style="height:36px;max-width:150px;display:block;margin-left:auto" alt=""></div>
+              <div style="margin-top:8px;text-align:right"><img id="inv-prev-qr" style="width:70px;height:70px;display:none;margin-left:auto" alt="QR"><div style="font-size:8px;color:#999;margin-top:2px">Scanner pour vérifier</div></div>
               </div>
             </div>
             <div style="margin-bottom:16px">
@@ -7225,7 +7297,8 @@ function updateInvoicePreview() {
   const tva=Math.round(ht*0.18),ttc=ht+tva;
   const e=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
   e('inv-prev-num',num);e('inv-prev-date',date);e('inv-prev-client',client);e('inv-prev-address',address);
-  const bcEl=document.getElementById('inv-prev-barcode');if(bcEl){const burl=getBarcodeDataURL(num);bcEl.src=burl||'';bcEl.style.display=burl?'block':'none';}
+  const ht2=parseInt(document.getElementById('inv-offer')?.value)||0;
+  injectQR('inv-prev-qr', num, client, ht2, date, 'facture');
   e('inv-prev-desc',detail||desc);e('inv-prev-ht',formatAmount(ht));e('inv-prev-subtotal',formatAmount(ht));
   e('inv-prev-tva',formatAmount(tva));e('inv-prev-ttc',formatAmount(ttc));
   const cg=document.getElementById('inv-custom-group');if(cg)cg.style.display=offerVal==='custom'?'block':'none';
@@ -7422,13 +7495,32 @@ function getDevisTotals() {
   return { ht, tva, ttc };
 }
 
-function getBarcodeDataURL(value) {
+const OPPIN_VERIFY_SECRET = 'OPPIN-INOVON-2026';
+
+function makeVerifyHash(ref, client, montant, date) {
+  const str = OPPIN_VERIFY_SECRET + '|' + ref + '|' + String(Math.round(montant)) + '|' + date;
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = (h * 0x01000193) >>> 0; }
+  return h.toString(36).toUpperCase().padStart(7,'0').substring(0, 7);
+}
+
+function makeVerifyURL(ref, client, montant, date, type) {
+  const hash = makeVerifyHash(ref, client, montant, date);
+  const payload = btoa(unescape(encodeURIComponent(JSON.stringify({r:ref,c:client,m:Math.round(montant),d:date,t:type,h:hash}))));
+  return 'https://oppin-erp.vercel.app/?verify=' + payload;
+}
+
+async function getQRDataURL(text) {
   try {
-    var canvas = document.getElementById('_bc_canvas');
-    if (!canvas || !window.JsBarcode) return '';
-    JsBarcode(canvas, value, {format:'CODE128',width:2,height:48,displayValue:true,fontSize:12,margin:4,background:'#ffffff',lineColor:'#000000'});
-    return canvas.toDataURL('image/png');
+    return await QRCode.toDataURL(text, {width:110,margin:1,color:{dark:'#0d1c60',light:'#ffffff'},errorCorrectionLevel:'M'});
   } catch(e) { return ''; }
+}
+
+async function injectQR(imgId, ref, client, montant, date, type) {
+  const url = makeVerifyURL(ref, client, montant, date, type);
+  const dataUrl = await getQRDataURL(url);
+  const el = document.getElementById(imgId);
+  if (el && dataUrl) { el.src = dataUrl; el.style.display = 'block'; }
 }
 
 function liveDevisPreview() {
@@ -7482,7 +7574,7 @@ function liveDevisPreview() {
           <div style="font-size:14px;font-weight:700;color:#1a80d4;margin-top:2px">${num}</div>
           <div style="font-size:11px;color:#666;margin-top:6px">Date : <strong>${dateStr}</strong></div>
           <div style="font-size:11px;color:#666">Validité : <strong>${validStr}</strong></div>
-          <div style="margin-top:8px">${(function(){var u=getBarcodeDataURL(num);return u?'<img src="'+u+'" style="height:40px;max-width:160px;display:block;margin-left:auto" alt="barcode">':'';}())}</div>
+          <div style="margin-top:10px;text-align:right"><img id="dev-qr-img" style="width:80px;height:80px;display:none;margin-left:auto" alt="QR Verification"><div style="font-size:8px;color:#999;text-align:center;margin-top:2px">Scanner pour vérifier</div></div>
         </div>
       </div>
 
@@ -7562,6 +7654,12 @@ function liveDevisPreview() {
         <div>${INOVON_LOGO_SVG.replace('width="90" height="115"','width="32" height="41"')}</div>
       </div>
     </div>`;
+  // Inject QR code for devis preview
+  const _num = document.getElementById('dev-number')?.value || '';
+  const _cli = document.getElementById('dev-client')?.value || '';
+  const _dat = document.getElementById('dev-date')?.value || '';
+  const {ttc:_ttc} = getDevisTotals();
+  injectQR('dev-qr-img', _num, _cli, _ttc, _dat, 'devis');
 }
 
 function saveAndPrintDevis() {
@@ -8034,6 +8132,43 @@ results=JSON.parse(mx?mx[0]:raw);}catch(e){results=null;}
   if(btn){btn.disabled=false;btn.textContent='🏷️ Auto-catégoriser (IA)';}
 }
 
+
+// OPPIN VERIFY PAGE
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const verifyParam = params.get('verify');
+  if (!verifyParam) return;
+  window.addEventListener('DOMContentLoaded', function() {
+    const app = document.getElementById('app');
+    const vp  = document.getElementById('verify-page');
+    if (app) app.style.display = 'none';
+    if (vp)  vp.style.display  = 'block';
+    try {
+      const data = JSON.parse(decodeURIComponent(escape(atob(verifyParam))));
+      const SECRET = 'OPPIN-INOVON-2026';
+      const str = SECRET + '|' + data.r + '|' + String(Math.round(data.m)) + '|' + data.d;
+      let h = 0x811c9dc5;
+      for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = (h * 0x01000193) >>> 0; }
+      const computedHash = h.toString(36).toUpperCase().padStart(7,'0').substring(0, 7);
+      document.getElementById('verify-loading').style.display = 'none';
+      if (computedHash === data.h) {
+        const fmt = function(n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ') + ' FCFA'; };
+        const dateStr = data.d ? new Date(data.d).toLocaleDateString('fr-FR', {day:'2-digit',month:'long',year:'numeric'}) : data.d;
+        document.getElementById('vfy-type').textContent    = (data.t === 'facture') ? 'Facture' : 'Devis';
+        document.getElementById('vfy-ref').textContent     = data.r;
+        document.getElementById('vfy-client').textContent  = data.c;
+        document.getElementById('vfy-montant').textContent = fmt(data.m);
+        document.getElementById('vfy-date').textContent    = dateStr;
+        document.getElementById('verify-valid').style.display = 'block';
+      } else {
+        document.getElementById('verify-invalid').style.display = 'block';
+      }
+    } catch(e) {
+      document.getElementById('verify-loading').style.display = 'none';
+      document.getElementById('verify-invalid').style.display = 'block';
+    }
+  });
+})();
 </script>
 
 </body>
