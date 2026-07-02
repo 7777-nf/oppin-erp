@@ -3834,7 +3834,7 @@ async function sendTelegramDocument(blob, filename, caption) {
   const _ALERT_CHT = '7711031858';
   const token = DB.config.tgToken || _ALERT_TOK;
   const chat  = DB.config.tgChat  || _ALERT_CHT;
-  if (!token || !chat) return false;
+  if (!token || !chat) { console.warn('TG document: pas de token/chat'); return { ok:false, reason:'Config Telegram manquante' }; }
   try {
     const form = new FormData();
     form.append('chat_id', chat);
@@ -3843,8 +3843,9 @@ async function sendTelegramDocument(blob, filename, caption) {
     form.append('parse_mode', 'HTML');
     const r = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, { method: 'POST', body: form });
     const data = await r.json();
-    return !!data.ok;
-  } catch(e) { console.warn('TG document failed', e); return false; }
+    if (!data.ok) console.warn('TG document rejected:', data.description);
+    return { ok: !!data.ok, reason: data.description || '' };
+  } catch(e) { console.warn('TG document failed', e); return { ok:false, reason: e.message }; }
 }
 
 function buildDevisTelegramCaption(num, client, ttc, technicianName) {
@@ -7764,7 +7765,8 @@ function notifyCeoDevisPdf(num, clientRaw, ttc, technicianName) {
       const filename = 'Devis_' + num + '_' + clientSafe + '.pdf';
       const blob = pdf.output('blob');
       const caption = buildDevisTelegramCaption(num, clientRaw, ttc, technicianName);
-      await sendTelegramDocument(blob, filename, caption);
+      const res1 = await sendTelegramDocument(blob, filename, caption);
+      if (!res1.ok) toast('⚠️ PDF non envoye au CEO (Telegram) : ' + res1.reason, 'error');
     } catch(e) { console.warn('Envoi PDF devis Telegram échoué', e); }
   })();
 }
@@ -7878,7 +7880,8 @@ async function downloadDevisPDF() {
         const now = new Date().toLocaleString('fr-FR', { timeZone: 'Africa/Abidjan' });
         const lignes = devisLines.filter(l => l.desc).map(l => '  • ' + l.desc + ' × ' + l.qty + ' → <b>' + formatFCFA(l.qty * l.unit) + '<\/b>').join('\n');
         sendTelegramAlert('📄 <b>NOUVEAU DEVIS INOVON<\/b>\n\n🔖 Numéro : <b>' + num + '<\/b>\n👤 Client : <b>' + clientRaw + '<\/b>\n💰 Montant : <b>' + formatFCFA(ttc) + '<\/b>\n📅 Date : ' + date + '\n👷 Technicien : ' + (su.name || 'Technicien') + '\n\n' + (lignes ? '<b>Prestations :<\/b>\n' + lignes + '\n\n' : '') + '⏱ ' + now);
-        sendTelegramDocument(pdf.output('blob'), filename, buildDevisTelegramCaption(num, clientRaw, ttc, su.name));
+        sendTelegramDocument(pdf.output('blob'), filename, buildDevisTelegramCaption(num, clientRaw, ttc, su.name))
+          .then(res => { if (!res.ok) toast('⚠️ PDF non envoye au CEO (Telegram) : ' + res.reason, 'error'); });
       }
     } catch(e) {}
   } catch(err) { toast('Erreur PDF : ' + err.message, 'error'); }
@@ -7927,7 +7930,8 @@ async function shareDevisToClient() {
     try {
       const su = JSON.parse(sessionStorage.getItem('charleAuth') || '{}');
       if (su.role === 'tech' && !alreadySaved) {
-        sendTelegramDocument(blob, filename, buildDevisTelegramCaption(num, clientRaw, ttc, su.name));
+        sendTelegramDocument(blob, filename, buildDevisTelegramCaption(num, clientRaw, ttc, su.name))
+        .then(res => { if (!res.ok) toast('⚠️ PDF non envoye au CEO (Telegram) : ' + res.reason, 'error'); });
       }
     } catch(e) {}
 
