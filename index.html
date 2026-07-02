@@ -3825,6 +3825,31 @@ async function sendTelegram(text) {
 
 async function sendTelegramAlert(text) { return sendTelegram(text); }
 
+// Envoi d'un fichier (PDF devis, etc.) au CEO sur Telegram, avec repli
+// automatique sur le bot/chat par défaut si l'appareil (ex: technicien
+// terrain) n'a pas de config Telegram personnalisée.
+async function sendTelegramDocument(blob, filename, caption) {
+  const _ALERT_TOK = '8685665089:AAElxK05PAnERZWuiu-B9Ls5DKppOj6LPCs';
+  const _ALERT_CHT = '7711031858';
+  const token = DB.config.tgToken || _ALERT_TOK;
+  const chat  = DB.config.tgChat  || _ALERT_CHT;
+  if (!token || !chat) return false;
+  try {
+    const form = new FormData();
+    form.append('chat_id', chat);
+    form.append('document', blob, filename);
+    form.append('caption', caption);
+    form.append('parse_mode', 'HTML');
+    const r = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, { method: 'POST', body: form });
+    const data = await r.json();
+    return !!data.ok;
+  } catch(e) { console.warn('TG document failed', e); return false; }
+}
+
+function buildDevisTelegramCaption(num, client, ttc, technicianName) {
+  return `📄 <b>Devis ${num}</b>\n👤 ${client}\n💰 ${formatFCFA(ttc)}\n👷 ${technicianName || 'Technicien'}`;
+}
+
 async function sendDailyBriefing() {
   const btn = document.querySelector('[onclick="sendDailyBriefing()"]');
   btn.disabled = true;
@@ -7692,6 +7717,57 @@ function liveDevisPreview() {
   injectQR('dev-qr-img', _num, _cli, _ttc, _dat, 'devis');
 }
 
+// Construit le PDF du devis actuellement affiché (aperçu) et le retourne
+// en objet jsPDF, sans le télécharger. Utilisé pour l'envoi Telegram au CEO.
+async function generateDevisPdfObject() {
+  const preview = document.getElementById('dev-preview');
+  if (!preview) return null;
+  const num = document.getElementById('dev-number')?.value || getNextDevisNumber();
+  const clientRaw = document.getElementById('dev-client')?.value || 'Client';
+  const { ttc } = getDevisTotals();
+  const date = document.getElementById('dev-date')?.value || new Date().toISOString().split('T')[0];
+  const qrUrl = makeVerifyURL(num, clientRaw, ttc, date, 'devis');
+  const qrDataUrl = getQRDataURL(qrUrl);
+  const qrImg = document.getElementById('dev-qr-img');
+  if (qrImg && qrDataUrl) { qrImg.src = qrDataUrl; qrImg.style.display = 'block'; }
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:794px;background:#ffffff;padding:0;z-index:-1';
+  wrapper.innerHTML = preview.innerHTML;
+  document.body.appendChild(wrapper);
+  const canvas = await html2canvas(wrapper, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, width: 794, windowWidth: 794 });
+  document.body.removeChild(wrapper);
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const imgW = pageW;
+  const imgH = (canvas.height * pageW) / canvas.width;
+  let posY = 0;
+  while (posY < imgH) {
+    if (posY > 0) pdf.addPage();
+    pdf.addImage(canvas.toDataURL('image/jpeg', 0.97), 'JPEG', 0, -posY, imgW, imgH);
+    posY += pageH;
+  }
+  return pdf;
+}
+
+// Envoie le devis (PDF) au CEO sur Telegram si l'utilisateur connecté est
+// un technicien terrain (ex: Kodjo). Ne bloque jamais le flux utilisateur :
+// s'exécute en tâche de fond, erreurs avalées silencieusement (log console).
+function notifyCeoDevisPdf(num, clientRaw, ttc, technicianName) {
+  (async () => {
+    try {
+      const pdf = await generateDevisPdfObject();
+      if (!pdf) return;
+      const clientSafe = clientRaw.replace(/[^a-zA-Z0-9_\-]/g, '_');
+      const filename = 'Devis_' + num + '_' + clientSafe + '.pdf';
+      const blob = pdf.output('blob');
+      const caption = buildDevisTelegramCaption(num, clientRaw, ttc, technicianName);
+      await sendTelegramDocument(blob, filename, caption);
+    } catch(e) { console.warn('Envoi PDF devis Telegram échoué', e); }
+  })();
+}
+
 function saveAndPrintDevis() {
   const client = document.getElementById('dev-client')?.value || 'Client';
   const num = document.getElementById('dev-number')?.value || getNextDevisNumber();
@@ -7723,6 +7799,7 @@ function saveAndPrintDevis() {
         (lignes ? `<b>Prestations :</b>\n${lignes}\n\n` : '') +
         `⏱ ${now}`;
       sendTelegramAlert(msg);
+      notifyCeoDevisPdf(num, client, ttc, sessionUser.name);
     }
   } catch(e) {}
 
@@ -7800,6 +7877,7 @@ async function downloadDevisPDF() {
         const now = new Date().toLocaleString('fr-FR', { timeZone: 'Africa/Abidjan' });
         const lignes = devisLines.filter(l => l.desc).map(l => '  • ' + l.desc + ' × ' + l.qty + ' → <b>' + formatFCFA(l.qty * l.unit) + '<\/b>').join('\n');
         sendTelegramAlert('📄 <b>NOUVEAU DEVIS INOVON<\/b>\n\n🔖 Numéro : <b>' + num + '<\/b>\n👤 Client : <b>' + clientRaw + '<\/b>\n💰 Montant : <b>' + formatFCFA(ttc) + '<\/b>\n📅 Date : ' + date + '\n👷 Technicien : ' + (su.name || 'Technicien') + '\n\n' + (lignes ? '<b>Prestations :<\/b>\n' + lignes + '\n\n' : '') + '⏱ ' + now);
+        sendTelegramDocument(pdf.output('blob'), filename, buildDevisTelegramCaption(num, clientRaw, ttc, su.name));
       }
     } catch(e) {}
   } catch(err) { toast('Erreur PDF : ' + err.message, 'error'); }
