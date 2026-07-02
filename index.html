@@ -2457,6 +2457,7 @@ pre{white-space:pre-wrap;font-family:inherit}
           <button class="btn-outline" onclick="resetDevis()">🔄 Nouveau devis</button>
           <button class="btn-outline" onclick="saveAndPrintDevis()" style="color:var(--text2)">🖨️ Imprimer</button>
           <button class="btn-gold" onclick="downloadDevisPDF()" id="btn-download-devis">⬇️ Télécharger PDF</button>
+          <button class="btn-gold" onclick="shareDevisToClient()" id="btn-share-devis">📲 Envoyer au client</button>
         </div>
       </div>
 
@@ -7882,6 +7883,72 @@ async function downloadDevisPDF() {
     } catch(e) {}
   } catch(err) { toast('Erreur PDF : ' + err.message, 'error'); }
   finally { if (btn) { btn.textContent = '⬇️ Télécharger PDF'; btn.disabled = false; } }
+}
+
+// Envoie le devis directement au client depuis le telephone (partage natif —
+// WhatsApp propose en premier sur mobile), avec le PDF deja joint. Repli:
+// telechargement + ouverture WhatsApp avec message pre-rempli si le partage
+// natif de fichiers n'est pas disponible sur l'appareil.
+async function shareDevisToClient() {
+  liveDevisPreview();
+  const preview = document.getElementById('dev-preview');
+  if (!preview) { toast('Apercu non disponible', 'error'); return; }
+
+  const num = document.getElementById('dev-number')?.value || getNextDevisNumber();
+  const clientRaw = document.getElementById('dev-client')?.value || 'Client';
+  const contact = document.getElementById('dev-contact')?.value || '';
+  const { ttc } = getDevisTotals();
+  const date = document.getElementById('dev-date')?.value || new Date().toISOString().split('T')[0];
+  const validity = document.getElementById('dev-validity')?.value || '30';
+
+  let phone = contact.replace(/\D/g, '');
+  if (phone.length === 10 && phone.startsWith('0')) phone = '225' + phone.slice(1);
+
+  if (!DB.devisHistory) DB.devisHistory = [];
+  const alreadySaved = DB.devisHistory.find(d => d.number === num);
+  if (!alreadySaved) {
+    DB.devisHistory.unshift({ id: Date.now(), number: num, client: clientRaw, ttc, date, validity, status: 'ÉMIS' });
+    saveDB(); renderDevisHistory();
+    saveDocToFirestore(num, clientRaw, ttc, date, 'devis');
+  }
+
+  const btn = document.getElementById('btn-share-devis');
+  if (btn) { btn.textContent = '⏳ Preparation…'; btn.disabled = true; }
+
+  try {
+    const pdf = await generateDevisPdfObject();
+    if (!pdf) { toast('Erreur generation PDF', 'error'); return; }
+    const clientSafe = clientRaw.replace(/[^a-zA-Z0-9_\-]/g, '_');
+    const filename = 'Devis_' + num + '_' + clientSafe + '.pdf';
+    const blob = pdf.output('blob');
+    const msgText = `Bonjour ${clientRaw},\n\nVeuillez trouver ci-joint votre devis INOVON n°${num} d'un montant de ${formatFCFA(ttc)} TTC (validite ${validity} jours).\n\nCordialement,\nINOVON — OPPIN SARL`;
+
+    // Alerte + copie PDF au CEO — une seule fois par numero de devis
+    try {
+      const su = JSON.parse(sessionStorage.getItem('charleAuth') || '{}');
+      if (su.role === 'tech' && !alreadySaved) {
+        sendTelegramDocument(blob, filename, buildDevisTelegramCaption(num, clientRaw, ttc, su.name));
+      }
+    } catch(e) {}
+
+    const file = new File([blob], filename, { type: 'application/pdf' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: `Devis INOVON ${num}`, text: msgText });
+      toast('Devis envoye ✅', 'success');
+    } else {
+      pdf.save(filename);
+      if (phone) {
+        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msgText)}`, '_blank');
+        toast('PDF telecharge — joignez-le dans WhatsApp (deja ouvert)', 'info');
+      } else {
+        toast('PDF telecharge — joignez-le manuellement au message client', 'info');
+      }
+    }
+  } catch(err) {
+    if (err.name !== 'AbortError') toast('Erreur envoi : ' + err.message, 'error');
+  } finally {
+    if (btn) { btn.textContent = '📲 Envoyer au client'; btn.disabled = false; }
+  }
 }
 
 function resetDevis() {
