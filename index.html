@@ -15,6 +15,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <style>
 :root {
   /* Backgrounds */
@@ -3294,20 +3295,62 @@ function startApp(role) {
 // ============================================================
 // AUTHENTIFICATION
 // ============================================================
-const CHARLE_USERS = [
-  {
-    email: 'albanngoran85@gmail.com',
-    enc: btoa(encodeURIComponent('OPPIN@2025' + '_CHARLE_SALT_OPPIN')),
-    role: 'ceo',
-    name: "CEO — Fabrice N'Goran"
-  },
-  {
-    email: 'tech@inovon.com',
-    enc: btoa(encodeURIComponent('INOVON@tech' + '_CHARLE_SALT_OPPIN')),
-    role: 'tech',
-    name: 'Technicien INOVON'
+// ------------------------------------------------------------
+// SPRINT 1A — Firebase Authentication (CHARLE_USERS retire le
+// 2026-08-06 apres validation complete : les deux comptes reels
+// (CEO, Kodjo) se connectent via Firebase, secours legacy inutile.
+// ------------------------------------------------------------
+
+// Config du projet Firebase oppin-erp (identique à celle utilisée
+// pour la page de vérification publique — valeurs publiques côté
+// client, non sensibles par nature pour Firebase Web).
+const CHARLE_FB_CONFIG = {
+  apiKey: 'AIzaSyBvIVa6atJlXUhBAA17YpG5wrf4xI7rGRQ',
+  authDomain: 'oppin-erp.firebaseapp.com',
+  projectId: 'oppin-erp',
+  storageBucket: 'oppin-erp.firebasestorage.app',
+  messagingSenderId: '435262840902',
+  appId: '1:435262840902:web:3e339fdbdd71170c25aa47'
+};
+
+let charleFbApp = null;
+let charleAuthFb = null;
+let charleRoleDb = null;
+
+async function initFirebaseAuth() {
+  if (charleAuthFb) return charleAuthFb;
+  try {
+    charleFbApp = firebase.apps.length ? firebase.apps[0] : firebase.initializeApp(CHARLE_FB_CONFIG);
+    charleAuthFb = firebase.auth(charleFbApp);
+    // Persistance alignée sur le comportement actuel (session Firestore-based,
+    // se termine à la fermeture de l'onglet) — pas de connexion auto au retour.
+    await charleAuthFb.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+    charleRoleDb = firebase.firestore(charleFbApp);
+  } catch (e) {
+    console.error('initFirebaseAuth error', e);
   }
-];
+  return charleAuthFb;
+}
+
+// RoleService — Sprint 1 : lecture du rôle depuis /utilisateurs/{uid}.
+// Sprint 2 : passage aux Custom Claims — seul ce bloc sera modifié,
+// aucun autre appelant du service n'aura à changer.
+const RoleService = {
+  async getRole(uid) {
+    if (!charleRoleDb || !uid) return null;
+    try {
+      const doc = await charleRoleDb.collection('utilisateurs').doc(uid).get();
+      if (doc.exists) {
+        const d = doc.data();
+        if (d && d.role) return { role: d.role, name: d.name || d.email || uid };
+      }
+      return null;
+    } catch (e) {
+      console.error('RoleService.getRole error', e);
+      return null;
+    }
+  }
+};
 
 function checkAuthOnLoad() {
   try {
@@ -3320,26 +3363,49 @@ function checkAuthOnLoad() {
   return null;
 }
 
-function doLogin() {
+async function doLogin() {
   const email = (document.getElementById('auth-email')?.value || '').trim().toLowerCase();
   const pass = document.getElementById('auth-password')?.value || '';
-  const enc = btoa(encodeURIComponent(pass + '_CHARLE_SALT_OPPIN'));
-  const user = CHARLE_USERS.find(u => u.email.toLowerCase() === email && u.enc === enc);
   const errEl = document.getElementById('auth-error');
-  if (!user) {
-    if (errEl) { errEl.style.display = 'block'; errEl.textContent = 'Email ou mot de passe incorrect'; }
-    const pwEl = document.getElementById('auth-password');
+  const pwEl = document.getElementById('auth-password');
+
+  const showError = (msg) => {
+    if (errEl) { errEl.style.display = 'block'; errEl.textContent = msg; }
     if (pwEl) { pwEl.value = ''; pwEl.focus(); }
-    return;
+  };
+  const completeLogin = (user) => {
+    if (errEl) errEl.style.display = 'none';
+    sessionStorage.setItem('charleAuth', JSON.stringify({ email: user.email, role: user.role, name: user.name }));
+    document.getElementById('auth-overlay').style.display = 'none';
+    applyAuthSession(user);
+  };
+
+  // Firebase Authentication — seul chemin de connexion (Sprint 1A clos,
+  // CHARLE_USERS retire).
+  try {
+    await initFirebaseAuth();
+    if (!charleAuthFb) {
+      showError('Service d\'authentification indisponible — réessayez');
+      return;
+    }
+    const cred = await charleAuthFb.signInWithEmailAndPassword(email, pass);
+    const roleInfo = await RoleService.getRole(cred.user.uid);
+    if (roleInfo) {
+      completeLogin({ email: cred.user.email, role: roleInfo.role, name: roleInfo.name });
+      return;
+    }
+    console.warn('Connexion Firebase OK mais rôle introuvable pour', cred.user.uid);
+    showError('Compte reconnu mais rôle non configuré — contacter l\'administrateur');
+    try { await charleAuthFb.signOut(); } catch(e) {}
+  } catch (fbErr) {
+    console.warn('Connexion Firebase échouée', fbErr && fbErr.code);
+    showError('Email ou mot de passe incorrect');
   }
-  if (errEl) errEl.style.display = 'none';
-  sessionStorage.setItem('charleAuth', JSON.stringify({ email: user.email, role: user.role, name: user.name }));
-  document.getElementById('auth-overlay').style.display = 'none';
-  applyAuthSession(user);
 }
 
 function doLogout() {
   sessionStorage.removeItem('charleAuth');
+  try { if (charleAuthFb) charleAuthFb.signOut(); } catch(e) {}
   location.reload();
 }
 
