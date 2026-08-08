@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------
+    // Rôle de l'utilisateur (RBAC_MATRIX.md v2.0 = référence)
+    // ------------------------------------------------------------
+    function authRole() {
+      return get(/databases/$(database)/documents/utilisateurs/$(request.auth.uid)).data.role;
+    }
+
+    function hasRole() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/utilisateurs/$(request.auth.uid)) &&
+        authRole() in ['ceo','superadmin','directeur','commercial','tech','sav','comptable','magasin','readonly'];
+    }
+
+    function isReadOnly()   { return hasRole() && authRole() == 'readonly'; }
+    function isPrivileged() { return hasRole() && authRole() in ['ceo','superadmin']; } // V/A sur tous les domaines
+
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // ------------------------------------------------------------
+    // Domaines métier -> champs Firestore réels (table de correspondance RBAC_MATRIX.md)
+    // ------------------------------------------------------------
+    function fieldsTresorerie()     { return ['transactions','cashSnapshots','expenses']; }
+    function fieldsCRM()            { return ['crmLeads','inovonPipeline']; }
+    function fieldsDevis()          { return ['devisHistory']; }
+    function fieldsFacturation()    { return ['invoices']; }
+    function fieldsRecouvrement()   { return ['receivables']; }
+    function fieldsComptabilite()   { return ['pnlTransactions']; }
+    function fieldsFiscalite()      { return ['fiscalEvents']; }
+    function fieldsInvestissement() { return ['investHistory']; }
+    function fieldsJuridique()      { return ['contracts','documents']; }
+
+    // Champs transverses : Système CHARLE (briefingHistory, chat) + alerts.
+    // Écriture ouverte à tout rôle valide non-Lecture-seule (décision CEO 08/08/2026 :
+    // pas de distinction "système" sans support technique réel — voir RBAC_MATRIX.md).
+    function fieldsOuverts() {
+      return ['alerts','briefingHistory','chat','_test','_ts'];
+    }
+
+    // ------------------------------------------------------------
+    // Champs autorisés en écriture, par rôle (E/V/A de la matrice)
+    // Domaines non implémentés (Stock/Achats, Maintenance/SAV, RH) :
+    // aucun champ dédié -> non inclus, réservés pour extension future.
+    //
+    // NB : fieldsTresorerie(), fieldsInvestissement() et fieldsJuridique()
+    // n'apparaissent volontairement dans AUCUNE branche ci-dessous. Selon
+    // RBAC_MATRIX.md v2.0, ces trois domaines n'accordent "E" (écriture)
+    // qu'à CEO (V) et Super Admin (A), déjà couverts par isPrivileged() en
+    // amont. Aucun autre rôle n'a jamais le droit d'y écrire — ce n'est pas
+    // un oubli, vérifié par les tests (Sprint 2.2, blocs Trésorerie/
+    // Investissement/Juridique). Ces fonctions restent définies pour
+    // documenter le mapping domaine -> champs de façon lisible.
+    // ------------------------------------------------------------
+    function allowedFields(role) {
+      return role == 'directeur'  ? fieldsCRM().concat(fieldsDevis()).concat(fieldsOuverts()) :
+             role == 'commercial' ? fieldsCRM().concat(fieldsDevis()).concat(fieldsOuverts()) :
+             role == 'tech'       ? fieldsDevis().concat(fieldsOuverts()) :
+             role == 'comptable'  ? fieldsFacturation().concat(fieldsRecouvrement())
+                                       .concat(fieldsComptabilite()).concat(fieldsFiscalite())
+                                       .concat(fieldsOuverts()) :
+             fieldsOuverts(); // sav, magasin : aucun domaine d'écriture implémenté aujourd'hui
+    }
+
+    match /charle/{document=**} {
+      // Lecture : inchangée depuis le Sprint 2.1 (limite documentée dans RBAC_MATRIX.md —
+      // pas de filtrage par domaine ni par élément possible au niveau des règles).
+      allow read: if hasRole();
+
+      // Écriture : CEO/Super Admin (V/A) illimités ; les autres rôles restreints aux
+      // domaines où ils ont un droit d'écriture (E), calculé via diff().affectedKeys() —
+      // sans aucune modification de pushToFirestore() (Option A retenue, voir RBAC_MATRIX.md).
+      allow write: if hasRole() && !isReadOnly() &&
+        (isPrivileged() || changedKeys().hasOnly(allowedFields(authRole())));
+    }
+
+    match /oppin_verify/{ref} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /utilisateurs/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+  }
+}

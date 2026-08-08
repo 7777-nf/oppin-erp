@@ -5721,7 +5721,8 @@ function addCRMLead() {
     offer: offerLabel, price: parseInt(offerPrice) || 0,
     stage, followup, notes,
     score: computeLeadScore(zone, type, stage, offerLabel),
-    createdAt: new Date().toISOString().split('T')[0]
+    createdAt: new Date().toISOString().split('T')[0],
+    businessUnit: 'INOVON'
   };
   if (!DB.crmLeads) DB.crmLeads = [];
   DB.crmLeads.push(lead);
@@ -6282,7 +6283,8 @@ Analyse complète et réponds en JSON:
       const name = document.getElementById('contract-text').value.substring(0, 50) + '...';
       DB.contracts.unshift({
         id: Date.now(), name: name, type, value, date: new Date().toISOString().split('T')[0],
-        verdict: a.verdict, riskScore
+        verdict: a.verdict, riskScore,
+        businessUnit: /INOVON/i.test(type) ? 'INOVON' : /BATE/i.test(type) ? 'BATE' : 'HOLDING'
       });
       saveDB();
       renderContractsList();
@@ -7219,7 +7221,7 @@ function saveDailyDeliveries() {
   const ticket = parseInt(document.getElementById('tr-ticket')?.value)||4200;
   const cost = parseInt(document.getElementById('tr-cost')?.value)||2500;
   const notes = document.getElementById('tr-notes')?.value||'';
-  const entry = { id:Date.now(), date, total, breakdown, ticket, cost, revenue:total*ticket, margin:total*(ticket-cost), notes, createdAt:new Date().toISOString() };
+  const entry = { id:Date.now(), date, total, breakdown, ticket, cost, revenue:total*ticket, margin:total*(ticket-cost), notes, createdAt:new Date().toISOString(), businessUnit: 'TROPRAPIDE' };
   const idx = DB.trDeliveries.findIndex(d => d.date===date);
   if (idx>=0) { DB.trDeliveries[idx]={...entry,id:DB.trDeliveries[idx].id}; toast(`Journée ${date} mise à jour ✅`,'success'); }
   else { DB.trDeliveries.push(entry); toast(`${total} livraisons enregistrées ✅`,'success'); }
@@ -7410,7 +7412,7 @@ function generateInvoice() {
   const contact=document.getElementById('inv-contact')?.value||'';
   const detail=document.getElementById('inv-detail')?.value||'';
   const offerNames={'15000':'Maintenance Essentiel','25000':'Maintenance Confort','50000':'Maintenance Premium','custom':'Prestation personnalisée'};
-  const invoice={id:Date.now(),number:num,client,address,contact,date,period,ht,tva:Math.round(ht*0.18),ttc:ht+Math.round(ht*0.18),offer:offerNames[offerVal]||'Prestation',detail,createdAt:new Date().toISOString(),status:'ÉMISE'};
+  const invoice={id:Date.now(),number:num,client,address,contact,date,period,ht,tva:Math.round(ht*0.18),ttc:ht+Math.round(ht*0.18),offer:offerNames[offerVal]||'Prestation',detail,createdAt:new Date().toISOString(),status:'ÉMISE',businessUnit:'INOVON'};
   DB.invoices.push(invoice);saveDB();renderInvoiceTable();
   saveDocToFirestore(invoice.number, invoice.client, invoice.ttc, invoice.date, 'facture');
   const numEl=document.getElementById('inv-number');if(numEl)numEl.value=getNextInvoiceNumber();
@@ -7475,7 +7477,7 @@ function generateBatchInvoices() {
     const offerKey=Object.keys(offerMap).find(k=>(lead.offer||'').includes(k));
     const ht=offerKey?offerMap[offerKey]:25000;
     const num=getNextInvoiceNumber();
-    DB.invoices.push({id:Date.now()+created,number:num,client:lead.name,address:lead.zone?lead.zone+', Abidjan':'Abidjan',contact:lead.contact||'',date:new Date().toISOString().split('T')[0],period,ht,tva:Math.round(ht*0.18),ttc:ht+Math.round(ht*0.18),offer:`Maintenance ${offerKey||'Confort'}`,detail:`Contrat de maintenance — ${period}`,createdAt:new Date().toISOString(),status:'ÉMISE'});
+    DB.invoices.push({id:Date.now()+created,number:num,client:lead.name,address:lead.zone?lead.zone+', Abidjan':'Abidjan',contact:lead.contact||'',date:new Date().toISOString().split('T')[0],period,ht,tva:Math.round(ht*0.18),ttc:ht+Math.round(ht*0.18),offer:`Maintenance ${offerKey||'Confort'}`,detail:`Contrat de maintenance — ${period}`,createdAt:new Date().toISOString(),status:'ÉMISE',businessUnit:'INOVON'});
     created++;
   });
   saveDB();renderInvoiceTable();toast(`${created} factures générées ✅`,'success');
@@ -7850,7 +7852,7 @@ function saveAndPrintDevis() {
 
   // Sauvegarder dans l'historique
   if (!DB.devisHistory) DB.devisHistory = [];
-  DB.devisHistory.unshift({ id: Date.now(), number: num, client, ttc, date, validity, status: 'ÉMIS' });
+  DB.devisHistory.unshift({ id: Date.now(), number: num, client, ttc, date, validity, status: 'ÉMIS', businessUnit: 'INOVON' });
   saveDB();
   renderDevisHistory();
   saveDocToFirestore(num, client, ttc, date, 'devis');
@@ -7912,7 +7914,7 @@ async function downloadDevisPDF() {
   if (!DB.devisHistory) DB.devisHistory = [];
   const alreadySaved = DB.devisHistory.find(d => d.number === num);
   if (!alreadySaved) {
-    DB.devisHistory.unshift({ id: Date.now(), number: num, client: clientRaw, ttc, date, validity, status: 'ÉMIS' });
+    DB.devisHistory.unshift({ id: Date.now(), number: num, client: clientRaw, ttc, date, validity, status: 'ÉMIS', businessUnit: 'INOVON' });
     saveDB(); renderDevisHistory();
     saveDocToFirestore(num, clientRaw, ttc, date, 'devis');
   }
@@ -7980,7 +7982,7 @@ async function shareDevisToClient() {
   if (!DB.devisHistory) DB.devisHistory = [];
   const alreadySaved = DB.devisHistory.find(d => d.number === num);
   if (!alreadySaved) {
-    DB.devisHistory.unshift({ id: Date.now(), number: num, client: clientRaw, ttc, date, validity, status: 'ÉMIS' });
+    DB.devisHistory.unshift({ id: Date.now(), number: num, client: clientRaw, ttc, date, validity, status: 'ÉMIS', businessUnit: 'INOVON' });
     saveDB(); renderDevisHistory();
     saveDocToFirestore(num, clientRaw, ttc, date, 'devis');
   }
