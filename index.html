@@ -3296,24 +3296,10 @@ function startApp(role) {
 // AUTHENTIFICATION
 // ============================================================
 // ------------------------------------------------------------
-// SPRINT 1 — Firebase Authentication (remplace CHARLE_USERS)
-// CHARLE_USERS reste actif en secours temporaire pendant la
-// fenêtre de validation du Sprint 1 (retrait prévu à la clôture).
+// SPRINT 1A — Firebase Authentication (CHARLE_USERS retire le
+// 2026-08-06 apres validation complete : les deux comptes reels
+// (CEO, Kodjo) se connectent via Firebase, secours legacy inutile.
 // ------------------------------------------------------------
-const CHARLE_USERS = [
-  {
-    email: 'albanngoran85@gmail.com',
-    enc: btoa(encodeURIComponent('OPPIN@2025' + '_CHARLE_SALT_OPPIN')),
-    role: 'ceo',
-    name: "CEO — Fabrice N'Goran"
-  },
-  {
-    email: 'tech@inovon.com',
-    enc: btoa(encodeURIComponent('INOVON@tech' + '_CHARLE_SALT_OPPIN')),
-    role: 'tech',
-    name: 'Technicien INOVON'
-  }
-];
 
 // Config du projet Firebase oppin-erp (identique à celle utilisée
 // pour la page de vérification publique — valeurs publiques côté
@@ -3394,40 +3380,27 @@ async function doLogin() {
     applyAuthSession(user);
   };
 
-  // 1) Chemin principal : Firebase Authentication
+  // Firebase Authentication — seul chemin de connexion (Sprint 1A clos,
+  // CHARLE_USERS retire).
   try {
     await initFirebaseAuth();
-    if (charleAuthFb) {
-      const cred = await charleAuthFb.signInWithEmailAndPassword(email, pass);
-      const roleInfo = await RoleService.getRole(cred.user.uid);
-      if (roleInfo) {
-        completeLogin({ email: cred.user.email, role: roleInfo.role, name: roleInfo.name });
-        return;
-      }
-      // Compte Firebase valide mais aucun document de rôle : accès refusé,
-      // pas de repli silencieux vers CHARLE_USERS pour ce compte.
-      console.warn('Connexion Firebase OK mais rôle introuvable pour', cred.user.uid);
-      showError('Compte reconnu mais rôle non configuré — contacter l\'administrateur');
-      try { await charleAuthFb.signOut(); } catch(e) {}
+    if (!charleAuthFb) {
+      showError('Service d\'authentification indisponible — réessayez');
       return;
     }
+    const cred = await charleAuthFb.signInWithEmailAndPassword(email, pass);
+    const roleInfo = await RoleService.getRole(cred.user.uid);
+    if (roleInfo) {
+      completeLogin({ email: cred.user.email, role: roleInfo.role, name: roleInfo.name });
+      return;
+    }
+    console.warn('Connexion Firebase OK mais rôle introuvable pour', cred.user.uid);
+    showError('Compte reconnu mais rôle non configuré — contacter l\'administrateur');
+    try { await charleAuthFb.signOut(); } catch(e) {}
   } catch (fbErr) {
-    // Échec Firebase (mauvais mot de passe, compte inconnu, hors-ligne...) :
-    // on tente l'accès de secours ci-dessous plutôt que d'échouer immédiatement.
-    console.warn('Connexion Firebase échouée, tentative accès de secours', fbErr && fbErr.code);
+    console.warn('Connexion Firebase échouée', fbErr && fbErr.code);
+    showError('Email ou mot de passe incorrect');
   }
-
-  // 2) Accès de secours temporaire (CHARLE_USERS) — actif uniquement
-  // pendant la fenêtre de validation du Sprint 1.
-  const enc = btoa(encodeURIComponent(pass + '_CHARLE_SALT_OPPIN'));
-  const legacyUser = CHARLE_USERS.find(u => u.email.toLowerCase() === email && u.enc === enc);
-  if (legacyUser) {
-    console.warn('⚠️ Connexion via accès de secours CHARLE_USERS (legacy) pour', legacyUser.email);
-    completeLogin(legacyUser);
-    return;
-  }
-
-  showError('Email ou mot de passe incorrect');
 }
 
 function doLogout() {
