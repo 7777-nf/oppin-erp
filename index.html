@@ -3086,6 +3086,8 @@ const FIRESTORE_DOC = 'oppin-ceo';
 let isSyncingFromRemote = false;
 
 function updateSyncStatus(status) {
+  // NB : statut partage avec le moteur de sync Telegram (saveSyncToTelegram /
+  // loadSyncFromTelegram / _applySyncData) -- inchange, hors perimetre DIAG-001.
   syncStatusCurrent = status;
   const dot = document.getElementById('sync-status-dot');
   const lbl = document.getElementById('sync-status-label');
@@ -3101,8 +3103,86 @@ function updateSyncStatus(status) {
   lbl.textContent = c.text;
 }
 
+// ============================================================
+// DIAG-001 -- Firebase Readiness & oppin_verify Reliability
+// Etat explicite de preparation Firebase, distinct du statut Telegram
+// ci-dessus mais reutilisant le meme indicateur visuel (sync-status-dot).
+// ============================================================
+let firebaseReadiness = 'idle'; // 'idle' | 'loading' | 'ready' | 'error' | 'not_configured'
+
+function setFirebaseReadiness(state) {
+  firebaseReadiness = state;
+  const dot = document.getElementById('sync-status-dot');
+  const lbl = document.getElementById('sync-status-label');
+  if (!dot || !lbl) return;
+  const map = {
+    idle:           { color: 'var(--text2)', text: 'Local' },
+    loading:        { color: 'var(--yellow)', text: '⟳ Synchronisation Firebase…' },
+    ready:          { color: 'var(--green)',  text: '🔥 Firebase connecté' },
+    not_configured: { color: 'var(--text2)',  text: '⚠ Firebase non configuré' },
+    error:          { color: 'var(--red)',    text: '⚠ Erreur de synchronisation Firebase' }
+  };
+  const c = map[state] || map.idle;
+  dot.style.background = c.color;
+  lbl.textContent = c.text;
+}
+
+// Sauvegarde Firestore "officielle" du document principal, ATTENDUE (awaited) --
+// contrairement a pushToFirestore() ci-dessous qui reste fire-and-forget pour
+// les sauvegardes courantes de l'UI. Utilisee par attemptVerifySync() pour
+// confirmer reellement l'etape "SAUVEGARDE FIRESTORE" avant de tenter oppin_verify.
+async function pushToFirestoreAwaited() {
+  if (!firestoreDB) return { ok: false, reason: 'not_ready' };
+  try {
+    const { config, ...dataToSync } = DB;
+    await firestoreDB.collection(FIRESTORE_COL).doc(FIRESTORE_DOC).set(dataToSync, { merge: true });
+    return { ok: true };
+  } catch (e) {
+    console.error('Firestore push error (awaited):', e);
+    return { ok: false, error: e };
+  }
+}
+
+// Point d'entree unique pour la synchronisation "verifiable" d'une facture ou
+// d'un devis deja enregistre localement (record = entree de DB.invoices ou
+// DB.devisHistory, deja creee par l'appelant -- jamais recreee ici).
+// Flux : SAUVEGARDE FIRESTORE (document principal) -> SYNCHRONISATION oppin_verify
+// -> CONFIRMATION -> verifyStatus. N'ecrit jamais un nouveau document oppin_verify
+// sous une autre reference : record.number est reutilise tel quel a chaque tentative,
+// donc idempotent (aucun doublon possible cote Firestore ni cote DB locale).
+async function attemptVerifySync(record, type) {
+  if (firebaseReadiness !== 'ready' || !firestoreDB) {
+    record.verifyStatus = 'failed';
+    record.verifyMessage = 'Enregistrement local effectué — sauvegarde Firestore non confirmée.';
+    saveLocalCache();
+    return { ok: false, reason: 'not_ready' };
+  }
+  const mainSave = await pushToFirestoreAwaited();
+  if (!mainSave.ok) {
+    record.verifyStatus = 'failed';
+    record.verifyMessage = 'Enregistrement local effectué — sauvegarde Firestore non confirmée.';
+    saveLocalCache();
+    setFirebaseReadiness('error');
+    return { ok: false, reason: 'main_save_failed', error: mainSave.error };
+  }
+  const verifyResult = await saveDocToFirestore(record.number, record.client, record.ttc, record.date, type);
+  if (!verifyResult.ok) {
+    record.verifyStatus = 'failed';
+    record.verifyMessage = "Document enregistré dans CHARLE, mais la vérification QR n'a pas pu être activée. Le PDF final est bloqué jusqu'à la synchronisation Firebase.";
+    saveLocalCache();
+    return { ok: false, reason: 'verify_write_failed', error: verifyResult.error };
+  }
+  record.verifyStatus = 'synced';
+  record.verifyMessage = '';
+  saveLocalCache();
+  // CEO 09/08/2026 : seul initFirebase() déclare 'ready' -- ce point n'est atteint
+  // que si firebaseReadiness était déjà 'ready' (garde-fou en tête de fonction).
+  return { ok: true };
+}
+
 async function initFirebase(configStr) {
-  if (!configStr || !configStr.trim()) return false;
+  if (!configStr || !configStr.trim()) { setFirebaseReadiness('not_configured'); return false; }
+  setFirebaseReadiness('loading');
   try {
     let cfg = configStr.trim();
     // Nettoyer : retirer "const firebaseConfig = " si l'user colle le bloc JS complet
@@ -3116,23 +3196,25 @@ async function initFirebase(configStr) {
       firebaseApp = firebase.apps[0];
     }
     firestoreDB = firebase.firestore();
-    updateSyncStatus('syncing');
-    // Charger données depuis Firestore
-    await loadFromFirestore();
+    // DIAG-001 : ready UNIQUEMENT si loadFromFirestore() confirme un succes reel
+    // (ne s'appuie plus sur une fonction qui avalait ses erreurs en silence)
+    const loaded = await loadFromFirestore();
+    if (!loaded.ok) throw (loaded.error || new Error('Échec du chargement initial Firestore'));
     // Écouter les changements en temps réel
     setupFirestoreListener();
-    updateSyncStatus('synced');
+    setFirebaseReadiness('ready');
     return true;
   } catch(e) {
     console.error('Firebase init error:', e);
-    updateSyncStatus('error');
+    firestoreDB = null;
+    setFirebaseReadiness('error');
     toast('Firebase: ' + e.message, 'error');
     return false;
   }
 }
 
 async function loadFromFirestore() {
-  if (!firestoreDB) return;
+  if (!firestoreDB) return { ok: false, reason: 'not_ready' };
   try {
     const snap = await firestoreDB.collection(FIRESTORE_COL).doc(FIRESTORE_DOC).get();
     if (snap.exists) {
@@ -3142,11 +3224,19 @@ async function loadFromFirestore() {
       DB = { ...DB, ...remote, config: localConfig };
       saveLocalCache();
     } else {
-      // Premier lancement : pousser les données locales vers Firestore
-      await pushToFirestore();
+      // Premier lancement : pousser les données locales vers Firestore -- ATTENDU,
+      // échec réel propagé (CEO 09/08/2026 : pushToFirestore() fire-and-forget
+      // pouvait laisser passer un échec silencieux ici -- pushToFirestore() reste
+      // définie mais n'est plus appelée depuis ce chemin).
+      const pushResult = await pushToFirestoreAwaited();
+      if (!pushResult.ok) {
+        return { ok: false, error: pushResult.error || new Error("Échec de l'écriture initiale Firestore") };
+      }
     }
+    return { ok: true };
   } catch(e) {
     console.error('Firestore load error:', e);
+    return { ok: false, error: e };
   }
 }
 
@@ -3172,12 +3262,13 @@ function setupFirestoreListener() {
     DB = { ...DB, ...remote, config: localConfig };
     saveLocalCache();
     renderAll();
-    updateSyncStatus('synced');
+    // CEO 09/08/2026 : seul initFirebase() déclare 'ready' -- un événement de sync
+    // distant ne doit pas re-promouvoir l'état (déjà 'ready' si on écoute ce flux).
     toast('🔥 Données synchronisées depuis un autre appareil', 'success');
     setTimeout(() => { isSyncingFromRemote = false; }, 1000);
   }, err => {
     console.error('Firestore listener error:', err);
-    updateSyncStatus('error');
+    setFirebaseReadiness('error');
   });
 }
 
@@ -3197,14 +3288,12 @@ function saveLocalCache() {
 
 function saveDB() {
   saveLocalCache();
-  if (firestoreDB) {
-    updateSyncStatus('syncing');
-    const { config, ...dataToSync } = DB;
-    firestoreDB.collection(FIRESTORE_COL).doc(FIRESTORE_DOC)
-      .set(dataToSync, { merge: true })
-      .then(() => updateSyncStatus('synced'))
-      .catch(e => { console.error(e); updateSyncStatus('error'); });
-  }
+  if (!firestoreDB) return; // état global (not_configured/error/loading) déjà correct -- jamais présenté comme synchronisé
+  // CEO 09/08/2026 : seul initFirebase() a le droit de déclarer 'ready'. saveDB()
+  // peut uniquement dégrader vers 'error' en cas d'échec réel -- jamais promouvoir.
+  pushToFirestoreAwaited().then(res => {
+    if (!res.ok) setFirebaseReadiness('error');
+  });
 }
 
 // ============================================================
@@ -3229,6 +3318,8 @@ async function saveConfig() {
   if (firebaseCfg) {
     const ok = await initFirebase(firebaseCfg);
     if (ok) toast('🔥 Firebase connecté — Sync cross-device activée ✅', 'success');
+  } else {
+    setFirebaseReadiness('not_configured');
   }
 }
 
@@ -3264,6 +3355,10 @@ async function updateConfig() {
     firestoreDB = null; firebaseApp = null;
     const ok = await initFirebase(newFirebaseCfg);
     if (ok) toast('🔥 Firebase reconnecté ✅', 'success');
+  } else if (firebaseChanged && !newFirebaseCfg) {
+    if (firestoreUnsub) firestoreUnsub();
+    firestoreDB = null; firebaseApp = null;
+    setFirebaseReadiness('not_configured');
   }
 }
 
@@ -3423,9 +3518,14 @@ function applyAuthSession(user) {
   // Lancement app ou setup
   if (user.role === 'tech') {
     startApp('tech');
+    // DIAG-001 : ce chemin n'initialisait jamais Firebase avant -- un technicien
+    // ne pouvait donc jamais obtenir de devis synchronisé/vérifiable.
+    if (DB.config.firebaseCfg) initFirebase(DB.config.firebaseCfg);
+    else setFirebaseReadiness('not_configured');
   } else if (DB.config.setupDone) {
     startApp(user.role);
     if (DB.config.firebaseCfg) initFirebase(DB.config.firebaseCfg);
+    else setFirebaseReadiness('not_configured');
   } else {
     document.getElementById('setup-screen').style.display = 'flex';
   }
@@ -7399,7 +7499,7 @@ function updateInvoicePreview() {
   const cg=document.getElementById('inv-custom-group');if(cg)cg.style.display=offerVal==='custom'?'block':'none';
 }
 
-function generateInvoice() {
+async function generateInvoice() {
   if (!DB.invoices) DB.invoices = [];
   const client=document.getElementById('inv-client')?.value?.trim();
   if(!client){toast('Nom client requis','error');return;}
@@ -7412,11 +7512,18 @@ function generateInvoice() {
   const contact=document.getElementById('inv-contact')?.value||'';
   const detail=document.getElementById('inv-detail')?.value||'';
   const offerNames={'15000':'Maintenance Essentiel','25000':'Maintenance Confort','50000':'Maintenance Premium','custom':'Prestation personnalisée'};
-  const invoice={id:Date.now(),number:num,client,address,contact,date,period,ht,tva:Math.round(ht*0.18),ttc:ht+Math.round(ht*0.18),offer:offerNames[offerVal]||'Prestation',detail,createdAt:new Date().toISOString(),status:'ÉMISE',businessUnit:'INOVON'};
+  // DIAG-001 : verifyStatus distingue enregistrement local (toujours effectué) de
+  // confirmation Firestore officielle + oppin_verify (jamais présumée).
+  const invoice={id:Date.now(),number:num,client,address,contact,date,period,ht,tva:Math.round(ht*0.18),ttc:ht+Math.round(ht*0.18),offer:offerNames[offerVal]||'Prestation',detail,createdAt:new Date().toISOString(),status:'ÉMISE',businessUnit:'INOVON',verifyStatus:'pending',verifyMessage:''};
   DB.invoices.push(invoice);saveDB();renderInvoiceTable();
-  saveDocToFirestore(invoice.number, invoice.client, invoice.ttc, invoice.date, 'facture');
+  const result = await attemptVerifySync(invoice, 'facture');
+  renderInvoiceTable();
   const numEl=document.getElementById('inv-number');if(numEl)numEl.value=getNextInvoiceNumber();
-  toast(`Facture ${num} créée ✅`,'success');
+  if (result.ok) {
+    toast(`Facture ${num} créée et vérifiable ✅`,'success');
+  } else {
+    toast(`Facture ${num} enregistrée — ${invoice.verifyMessage}`,'error');
+  }
 }
 
 function renderInvoiceTable() {
@@ -7424,6 +7531,11 @@ function renderInvoiceTable() {
   const tbody=document.getElementById('inv-table'); if(!tbody) return;
   const el=document.getElementById('inv-count');if(el)el.textContent=`(${DB.invoices.length})`;
   if(!DB.invoices.length){tbody.innerHTML='<tr><td colspan="6" class="text-muted" style="text-align:center;padding:16px">Aucune facture générée</td></tr>';return;}
+  const invVerifyBadge = (r) => r.verifyStatus === 'synced'
+    ? '<div style="color:var(--green);font-size:9px;margin-top:2px">✅ Vérifiable</div>'
+    : r.verifyStatus === 'failed'
+      ? '<div style="color:var(--red);font-size:9px;margin-top:2px">⚠ Sync échouée</div>'
+      : '<div style="color:var(--text2);font-size:9px;margin-top:2px">⏳ Non synchronisé</div>';
   tbody.innerHTML=[...DB.invoices].sort((a,b)=>b.createdAt>a.createdAt?1:-1).map(inv=>`
     <tr>
       <td style="font-weight:600;color:var(--gold)">${inv.number}</td>
@@ -7432,8 +7544,9 @@ function renderInvoiceTable() {
       <td style="color:var(--green);font-weight:600">${formatAmount(inv.ttc)}</td>
       <td style="color:var(--text2)">${inv.date}</td>
       <td>
-        <button class="btn-sm" onclick="loadInvoiceForPrint(${inv.id})">🖨️</button>
+        <button class="btn-sm" onclick="printInvoice(${inv.id})" title="Imprimer (synchronise si nécessaire)">🖨️</button>
         <button class="btn-sm" style="color:var(--red);margin-left:4px" onclick="DB.invoices=DB.invoices.filter(x=>x.id!==${inv.id});saveDB();renderInvoiceTable()">✕</button>
+        ${invVerifyBadge(inv)}
       </td>
     </tr>`).join('');
 }
@@ -7448,14 +7561,33 @@ function loadInvoiceForPrint(id) {
   updateInvoicePreview();showTab('invoices');
 }
 
-async function printInvoice() {
+async function printInvoice(invoiceId) {
+  // DIAG-001 : source unique de vérité -- jamais d'impression depuis le formulaire
+  // brut. On résout l'enregistrement officiel (DB.invoices), on garantit sa
+  // synchronisation oppin_verify, puis on ré-affiche le formulaire depuis CET
+  // enregistrement avant capture -- jamais l'inverse.
+  let invoice;
+  if (invoiceId != null) {
+    invoice = (DB.invoices||[]).find(i => i.id === invoiceId);
+  } else {
+    const num = document.getElementById('inv-number')?.value || '';
+    invoice = (DB.invoices||[]).find(i => i.number === num);
+  }
+  if (!invoice) {
+    toast("Générez d'abord la facture avant de l'imprimer.", 'error');
+    return;
+  }
+  if (invoice.verifyStatus !== 'synced') {
+    const result = await attemptVerifySync(invoice, 'facture');
+    renderInvoiceTable();
+    if (!result.ok) {
+      toast(invoice.verifyMessage || 'Document non vérifiable pour le moment — impression bloquée.', 'error');
+      return;
+    }
+  }
+  loadInvoiceForPrint(invoice.id);
   updateInvoicePreview();
-  // Attendre le QR code
-  const invNum = document.getElementById('inv-number')?.value || '';
-  const invCli = document.getElementById('inv-client')?.value || '';
-  const invDat = document.getElementById('inv-date')?.value || '';
-  const invHt  = parseInt(document.getElementById('inv-offer')?.value) || 0;
-  const qrUrl2 = makeVerifyURL(invNum, invCli, invHt, invDat, 'facture');
+  const qrUrl2 = makeVerifyURL(invoice.number, invoice.client, invoice.ttc, invoice.date, 'facture');
   const qrData2 = getQRDataURL(qrUrl2);
   const qrEl2 = document.getElementById('inv-prev-qr');
   if (qrEl2 && qrData2) { qrEl2.src = qrData2; qrEl2.style.display = 'block'; }
@@ -7614,7 +7746,7 @@ function makeVerifyURL(ref, client, montant, date, type) {
 }
 
 async function saveDocToFirestore(ref, client, montant, date, type) {
-  if (!firestoreDB) return;
+  if (!firestoreDB) return { ok: false, reason: 'not_ready' };
   try {
     await firestoreDB.collection('oppin_verify').doc(ref).set({
       ref: ref,
@@ -7625,7 +7757,11 @@ async function saveDocToFirestore(ref, client, montant, date, type) {
       emetteur: 'OPPIN SARL - INOVON',
       createdAt: new Date().toISOString()
     });
-  } catch(e) { console.warn('saveDocToFirestore:', e); }
+    return { ok: true };
+  } catch(e) {
+    console.warn('saveDocToFirestore:', e);
+    return { ok: false, error: e };
+  }
 }
 
 function getQRDataURL(text) {
@@ -7793,13 +7929,15 @@ function liveDevisPreview() {
 
 // Construit le PDF du devis actuellement affiché (aperçu) et le retourne
 // en objet jsPDF, sans le télécharger. Utilisé pour l'envoi Telegram au CEO.
-async function generateDevisPdfObject() {
+async function generateDevisPdfObject(overrideNum, overrideClient, overrideTtc, overrideDate) {
   const preview = document.getElementById('dev-preview');
   if (!preview) return null;
-  const num = document.getElementById('dev-number')?.value || getNextDevisNumber();
-  const clientRaw = document.getElementById('dev-client')?.value || 'Client';
-  const { ttc } = getDevisTotals();
-  const date = document.getElementById('dev-date')?.value || new Date().toISOString().split('T')[0];
+  // DIAG-001 : si un enregistrement confirmé (record) est fourni, il prime
+  // toujours sur le formulaire brut pour la génération du QR.
+  const num = overrideNum || document.getElementById('dev-number')?.value || getNextDevisNumber();
+  const clientRaw = overrideClient || document.getElementById('dev-client')?.value || 'Client';
+  const ttc = (overrideTtc != null) ? overrideTtc : getDevisTotals().ttc;
+  const date = overrideDate || document.getElementById('dev-date')?.value || new Date().toISOString().split('T')[0];
   const qrUrl = makeVerifyURL(num, clientRaw, ttc, date, 'devis');
   const qrDataUrl = getQRDataURL(qrUrl);
   const qrImg = document.getElementById('dev-qr-img');
@@ -7828,10 +7966,12 @@ async function generateDevisPdfObject() {
 // Envoie le devis (PDF) au CEO sur Telegram si l'utilisateur connecté est
 // un technicien terrain (ex: Kodjo). Ne bloque jamais le flux utilisateur :
 // s'exécute en tâche de fond, erreurs avalées silencieusement (log console).
-function notifyCeoDevisPdf(num, clientRaw, ttc, technicianName) {
+function notifyCeoDevisPdf(num, clientRaw, ttc, technicianName, date) {
   (async () => {
     try {
-      const pdf = await generateDevisPdfObject();
+      // DIAG-001 : copie CEO générée uniquement à partir de l'enregistrement
+      // confirmé (num/client/ttc/date) -- jamais du formulaire au moment de l'appel.
+      const pdf = await generateDevisPdfObject(num, clientRaw, ttc, date);
       if (!pdf) return;
       const clientSafe = clientRaw.replace(/[^a-zA-Z0-9_\-]/g, '_');
       const filename = 'Devis_' + num + '_' + clientSafe + '.pdf';
@@ -7843,21 +7983,25 @@ function notifyCeoDevisPdf(num, clientRaw, ttc, technicianName) {
   })();
 }
 
-function saveAndPrintDevis() {
-  const client = document.getElementById('dev-client')?.value || 'Client';
-  const num = document.getElementById('dev-number')?.value || getNextDevisNumber();
-  const date = document.getElementById('dev-date')?.value || new Date().toISOString().split('T')[0];
-  const validity = document.getElementById('dev-validity')?.value || '30';
-  const { ttc } = getDevisTotals();
-
-  // Sauvegarder dans l'historique
+// DIAG-001 : point d'entrée unique de sauvegarde locale d'un devis, partagé par
+// les 3 actions (imprimer, télécharger, envoyer). Ne recrée jamais un devis déjà
+// présent (recherche par numéro) -- la synchronisation oppin_verify est gérée
+// séparément par attemptVerifySync(), rejouable sans recréer l'enregistrement.
+function ensureDevisSaved(num, client, ttc, date, validity) {
   if (!DB.devisHistory) DB.devisHistory = [];
-  DB.devisHistory.unshift({ id: Date.now(), number: num, client, ttc, date, validity, status: 'ÉMIS', businessUnit: 'INOVON' });
-  saveDB();
-  renderDevisHistory();
-  saveDocToFirestore(num, client, ttc, date, 'devis');
+  let d = DB.devisHistory.find(x => x.number === num);
+  if (!d) {
+    d = { id: Date.now(), number: num, client, ttc, date, validity, status: 'ÉMIS', businessUnit: 'INOVON', verifyStatus: 'pending', verifyMessage: '' };
+    DB.devisHistory.unshift(d);
+    saveDB();
+    renderDevisHistory();
+  }
+  return d;
+}
 
-  // ── Alerte Telegram CEO si devis produit par un technicien ──
+// Notification texte interne (sans QR) -- indépendante du succès de la
+// synchronisation oppin_verify : visibilité business toujours prioritaire.
+function alertTelegramNouveauDevis(num, client, ttc, date) {
   try {
     const sessionUser = JSON.parse(sessionStorage.getItem('charleAuth') || '{}');
     if (sessionUser.role === 'tech') {
@@ -7874,20 +8018,46 @@ function saveAndPrintDevis() {
         (lignes ? `<b>Prestations :</b>\n${lignes}\n\n` : '') +
         `⏱ ${now}`;
       sendTelegramAlert(msg);
-      notifyCeoDevisPdf(num, client, ttc, sessionUser.name);
+    }
+  } catch(e) {}
+}
+
+async function saveAndPrintDevis() {
+  const client = document.getElementById('dev-client')?.value || 'Client';
+  const num = document.getElementById('dev-number')?.value || getNextDevisNumber();
+  const date = document.getElementById('dev-date')?.value || new Date().toISOString().split('T')[0];
+  const validity = document.getElementById('dev-validity')?.value || '30';
+  const { ttc } = getDevisTotals();
+
+  const wasNew = !(DB.devisHistory||[]).find(x => x.number === num);
+  const d = ensureDevisSaved(num, client, ttc, date, validity);
+  if (wasNew) alertTelegramNouveauDevis(num, client, ttc, date);
+
+  // DIAG-001 : PDF/QR bloqués tant que oppin_verify n'est pas confirmé
+  if (d.verifyStatus !== 'synced') {
+    const result = await attemptVerifySync(d, 'devis');
+    renderDevisHistory();
+    if (!result.ok) {
+      toast(d.verifyMessage || 'Synchronisation impossible pour le moment — impression bloquée.', 'error');
+      return;
+    }
+  }
+
+  // Copie CEO (PDF+QR) uniquement une fois la synchronisation confirmée
+  try {
+    const sessionUser = JSON.parse(sessionStorage.getItem('charleAuth') || '{}');
+    if (sessionUser.role === 'tech' && wasNew) {
+      notifyCeoDevisPdf(d.number, d.client, d.ttc, sessionUser.name, d.date);
     }
   } catch(e) {}
 
-  // Mettre à jour le numéro suivant
-  const numEl = document.getElementById('dev-number');
-  // (ne pas changer le numéro affiché)
-
-  // Imprimer
+  // Imprimer -- depuis l'enregistrement désormais confirmé (source unique de vérité)
   liveDevisPreview();
+  injectQR('dev-qr-img', d.number, d.client, d.ttc, d.date, 'devis');
   const preview = document.getElementById('dev-preview');
   if (!preview) return;
   const w = window.open('', '_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>Devis ${num}</title>
+  w.document.write(`<!DOCTYPE html><html><head><title>Devis ${d.number}</title>
     <style>
       body{margin:0;padding:0;font-family:Arial,sans-serif;background:#fff;color:#1a1a1a}
       @media print{body{margin:0}button{display:none!important}}
@@ -7897,13 +8067,10 @@ function saveAndPrintDevis() {
   <script>window.onload=()=>{setTimeout(()=>window.print(),300);}<\/script>
   </body></html>`);
   w.document.close();
-  toast(`Devis ${num} sauvegardé ✅`, 'success');
+  toast(`Devis ${d.number} sauvegardé et vérifiable ✅`, 'success');
 }
 
 async function downloadDevisPDF() {
-  liveDevisPreview();
-  const preview = document.getElementById('dev-preview');
-  if (!preview) { toast('Aperçu non disponible', 'error'); return; }
   const num = document.getElementById('dev-number')?.value || getNextDevisNumber();
   const clientRaw = document.getElementById('dev-client')?.value || 'Client';
   const clientSafe = clientRaw.replace(/[^a-zA-Z0-9_\-]/g, '_');
@@ -7911,21 +8078,32 @@ async function downloadDevisPDF() {
   const { ttc } = getDevisTotals();
   const date = document.getElementById('dev-date')?.value || new Date().toISOString().split('T')[0];
   const validity = document.getElementById('dev-validity')?.value || '30';
-  if (!DB.devisHistory) DB.devisHistory = [];
-  const alreadySaved = DB.devisHistory.find(d => d.number === num);
-  if (!alreadySaved) {
-    DB.devisHistory.unshift({ id: Date.now(), number: num, client: clientRaw, ttc, date, validity, status: 'ÉMIS', businessUnit: 'INOVON' });
-    saveDB(); renderDevisHistory();
-    saveDocToFirestore(num, clientRaw, ttc, date, 'devis');
-  }
+
+  const wasNew = !(DB.devisHistory||[]).find(x => x.number === num);
+  const d = ensureDevisSaved(num, clientRaw, ttc, date, validity);
+  if (wasNew) alertTelegramNouveauDevis(num, clientRaw, ttc, date);
+
   const btn = document.getElementById('btn-download-devis');
+  // DIAG-001 : PDF bloqué tant que oppin_verify n'est pas confirmé
+  if (d.verifyStatus !== 'synced') {
+    if (btn) { btn.textContent = '⏳ Synchronisation…'; btn.disabled = true; }
+    const result = await attemptVerifySync(d, 'devis');
+    renderDevisHistory();
+    if (btn) { btn.textContent = '⬇️ Télécharger PDF'; btn.disabled = false; }
+    if (!result.ok) {
+      toast(d.verifyMessage || 'Synchronisation impossible pour le moment — PDF bloqué.', 'error');
+      return;
+    }
+  }
+
+  liveDevisPreview();
+  const preview = document.getElementById('dev-preview');
+  if (!preview) { toast('Aperçu non disponible', 'error'); return; }
+  // Source unique de vérité : le QR reflète l'enregistrement confirmé, pas le formulaire
+  injectQR('dev-qr-img', d.number, d.client, d.ttc, d.date, 'devis');
+
   if (btn) { btn.textContent = '⏳ Génération…'; btn.disabled = true; }
   try {
-    // Generer le QR code avant la capture PDF
-    const qrUrl = makeVerifyURL(num, clientRaw, ttc, date, 'devis');
-    const qrDataUrl = getQRDataURL(qrUrl);
-    const qrImg = document.getElementById('dev-qr-img');
-    if (qrImg && qrDataUrl) { qrImg.src = qrDataUrl; qrImg.style.display = 'block'; }
     const wrapper = document.createElement('div');
     wrapper.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:794px;background:#ffffff;padding:0;z-index:-1';
     wrapper.innerHTML = preview.innerHTML;
@@ -7948,11 +8126,8 @@ async function downloadDevisPDF() {
     toast('✅ ' + filename + ' téléchargé', 'success');
     try {
       const su = JSON.parse(sessionStorage.getItem('charleAuth') || '{}');
-      if (su.role === 'tech' && !alreadySaved) {
-        const now = new Date().toLocaleString('fr-FR', { timeZone: 'Africa/Abidjan' });
-        const lignes = devisLines.filter(l => l.desc).map(l => '  • ' + l.desc + ' × ' + l.qty + ' → <b>' + formatFCFA(l.qty * l.unit) + '<\/b>').join('\n');
-        sendTelegramAlert('📄 <b>NOUVEAU DEVIS INOVON<\/b>\n\n🔖 Numéro : <b>' + num + '<\/b>\n👤 Client : <b>' + clientRaw + '<\/b>\n💰 Montant : <b>' + formatFCFA(ttc) + '<\/b>\n📅 Date : ' + date + '\n👷 Technicien : ' + (su.name || 'Technicien') + '\n\n' + (lignes ? '<b>Prestations :<\/b>\n' + lignes + '\n\n' : '') + '⏱ ' + now);
-        sendTelegramDocument(pdf.output('blob'), filename, buildDevisTelegramCaption(num, clientRaw, ttc, su.name))
+      if (su.role === 'tech' && wasNew) {
+        sendTelegramDocument(pdf.output('blob'), filename, buildDevisTelegramCaption(d.number, d.client, d.ttc, su.name))
           .then(res => { if (!res.ok) toast('⚠️ PDF non envoye au CEO (Telegram) : ' + res.reason, 'error'); });
       }
     } catch(e) {}
@@ -7965,10 +8140,6 @@ async function downloadDevisPDF() {
 // telechargement + ouverture WhatsApp avec message pre-rempli si le partage
 // natif de fichiers n'est pas disponible sur l'appareil.
 async function shareDevisToClient() {
-  liveDevisPreview();
-  const preview = document.getElementById('dev-preview');
-  if (!preview) { toast('Apercu non disponible', 'error'); return; }
-
   const num = document.getElementById('dev-number')?.value || getNextDevisNumber();
   const clientRaw = document.getElementById('dev-client')?.value || 'Client';
   const contact = document.getElementById('dev-contact')?.value || '';
@@ -7979,37 +8150,50 @@ async function shareDevisToClient() {
   let phone = contact.replace(/\D/g, '');
   if (phone.length === 10 && phone.startsWith('0')) phone = '225' + phone.slice(1);
 
-  if (!DB.devisHistory) DB.devisHistory = [];
-  const alreadySaved = DB.devisHistory.find(d => d.number === num);
-  if (!alreadySaved) {
-    DB.devisHistory.unshift({ id: Date.now(), number: num, client: clientRaw, ttc, date, validity, status: 'ÉMIS', businessUnit: 'INOVON' });
-    saveDB(); renderDevisHistory();
-    saveDocToFirestore(num, clientRaw, ttc, date, 'devis');
-  }
+  const wasNew = !(DB.devisHistory||[]).find(x => x.number === num);
+  const d = ensureDevisSaved(num, clientRaw, ttc, date, validity);
+  if (wasNew) alertTelegramNouveauDevis(num, clientRaw, ttc, date);
 
   const btn = document.getElementById('btn-share-devis');
+  // DIAG-001 : partage bloqué tant que oppin_verify n'est pas confirmé
+  if (d.verifyStatus !== 'synced') {
+    if (btn) { btn.textContent = '⏳ Synchronisation…'; btn.disabled = true; }
+    const result = await attemptVerifySync(d, 'devis');
+    renderDevisHistory();
+    if (btn) { btn.textContent = '📲 Envoyer au client'; btn.disabled = false; }
+    if (!result.ok) {
+      toast(d.verifyMessage || 'Synchronisation impossible pour le moment — envoi bloqué.', 'error');
+      return;
+    }
+  }
+
+  liveDevisPreview();
+  const preview = document.getElementById('dev-preview');
+  if (!preview) { toast('Apercu non disponible', 'error'); return; }
+  injectQR('dev-qr-img', d.number, d.client, d.ttc, d.date, 'devis');
+
   if (btn) { btn.textContent = '⏳ Preparation…'; btn.disabled = true; }
 
   try {
-    const pdf = await generateDevisPdfObject();
+    const pdf = await generateDevisPdfObject(d.number, d.client, d.ttc, d.date);
     if (!pdf) { toast('Erreur generation PDF', 'error'); return; }
-    const clientSafe = clientRaw.replace(/[^a-zA-Z0-9_\-]/g, '_');
-    const filename = 'Devis_' + num + '_' + clientSafe + '.pdf';
+    const clientSafe = d.client.replace(/[^a-zA-Z0-9_\-]/g, '_');
+    const filename = 'Devis_' + d.number + '_' + clientSafe + '.pdf';
     const blob = pdf.output('blob');
-    const msgText = `Bonjour ${clientRaw},\n\nVeuillez trouver ci-joint votre devis INOVON n°${num} d'un montant de ${formatFCFA(ttc)} TTC (validite ${validity} jours).\n\nCordialement,\nINOVON — OPPIN SARL`;
+    const msgText = `Bonjour ${d.client},\n\nVeuillez trouver ci-joint votre devis INOVON n°${d.number} d'un montant de ${formatFCFA(d.ttc)} TTC (validite ${validity} jours).\n\nCordialement,\nINOVON — OPPIN SARL`;
 
-    // Alerte + copie PDF au CEO — une seule fois par numero de devis
+    // Copie PDF au CEO — une seule fois par numero de devis, uniquement si synchronisé
     try {
       const su = JSON.parse(sessionStorage.getItem('charleAuth') || '{}');
-      if (su.role === 'tech' && !alreadySaved) {
-        sendTelegramDocument(blob, filename, buildDevisTelegramCaption(num, clientRaw, ttc, su.name))
+      if (su.role === 'tech' && wasNew) {
+        sendTelegramDocument(blob, filename, buildDevisTelegramCaption(d.number, d.client, d.ttc, su.name))
         .then(res => { if (!res.ok) toast('⚠️ PDF non envoye au CEO (Telegram) : ' + res.reason, 'error'); });
       }
     } catch(e) {}
 
     const file = new File([blob], filename, { type: 'application/pdf' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: `Devis INOVON ${num}`, text: msgText });
+      await navigator.share({ files: [file], title: `Devis INOVON ${d.number}`, text: msgText });
       toast('Devis envoye ✅', 'success');
     } else {
       pdf.save(filename);
@@ -8062,13 +8246,18 @@ function renderDevisHistory() {
       validExp = exp < now ? '<span style="color:var(--red)">Expiré</span>' : exp.toLocaleDateString('fr-FR');
     }
     const statusColor = d.status === 'ACCEPTÉ' ? 'var(--green)' : d.status === 'REFUSÉ' ? 'var(--red)' : '#D4A843';
+    const devVerifyBadge = d.verifyStatus === 'synced'
+      ? '<div style="color:var(--green);font-size:9px;margin-top:2px">✅ Vérifiable</div>'
+      : d.verifyStatus === 'failed'
+        ? '<div style="color:var(--red);font-size:9px;margin-top:2px">⚠ Sync échouée</div>'
+        : '<div style="color:var(--text2);font-size:9px;margin-top:2px">⏳ Non synchronisé</div>';
     return `<tr>
       <td style="font-size:11px">${d.number}</td>
       <td>${d.client}</td>
       <td style="font-weight:700;color:var(--gold)">${formatFCFA(d.ttc)}</td>
       <td>${dateStr}</td>
       <td>${validExp}</td>
-      <td><span style="color:${statusColor};font-size:11px;font-weight:600">${d.status}</span></td>
+      <td><span style="color:${statusColor};font-size:11px;font-weight:600">${d.status}</span>${devVerifyBadge}</td>
       <td style="display:flex;gap:4px">
         <button class="btn-outline" style="font-size:10px;padding:3px 7px" onclick="updateDevisStatus('${d.id}','ACCEPTÉ')">✅</button>
         <button class="btn-outline" style="font-size:10px;padding:3px 7px" onclick="updateDevisStatus('${d.id}','REFUSÉ')">❌</button>
