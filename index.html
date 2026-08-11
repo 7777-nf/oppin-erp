@@ -3925,20 +3925,31 @@ function addAlert(level, title, message, type = 'info') {
 }
 
 function renderAlerts() {
+  // HOTFIX renderAlerts-nullguard (2026-08-11) : ces elements n'existent pas sur
+  // toutes les vues (ex. War Room CEO au premier rendu apres login). L'ancien code
+  // plantait ici (TypeError sur null), ce qui interrompait startApp()/applyAuthSession()
+  // AVANT l'appel a initFirebase() -- Firebase ne s'initialisait alors jamais.
+  // Comportement inchange quand les elements existent ; ignore silencieusement sinon.
   const active = DB.alerts.filter(a => !a.acknowledged);
   const count = active.length;
 
-  document.getElementById('alerts-count').textContent = count;
-  document.getElementById('alerts-subtitle').textContent = `${count} alerte${count!==1?'s':''} active${count!==1?'s':''}`;
+  const countEl = document.getElementById('alerts-count');
+  if (countEl) countEl.textContent = count;
+  const subtitleEl = document.getElementById('alerts-subtitle');
+  if (subtitleEl) subtitleEl.textContent = `${count} alerte${count!==1?'s':''} active${count!==1?'s':''}`;
 
-  if (count > 0) {
-    document.getElementById('alert-badge').style.display = 'inline';
-    document.getElementById('alert-badge').textContent = count;
-  } else {
-    document.getElementById('alert-badge').style.display = 'none';
+  const badgeEl = document.getElementById('alert-badge');
+  if (badgeEl) {
+    if (count > 0) {
+      badgeEl.style.display = 'inline';
+      badgeEl.textContent = count;
+    } else {
+      badgeEl.style.display = 'none';
+    }
   }
 
   const list = document.getElementById('alerts-list');
+  if (!list) return;
   if (!active.length) {
     list.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">Aucune alerte active</div></div>';
     return;
