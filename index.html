@@ -3532,6 +3532,12 @@ function applyAuthSession(user) {
 }
 
 window.onload = async function() {
+  // HOTFIX qr-verify-publicpage (2026-08-12) : la page de verification publique
+  // (?verify=REF) est geree separement par l'IIFE "OPPIN VERIFY PAGE" plus bas dans
+  // ce fichier. Elle ne doit jamais declencher l'initialisation normale de CHARLE
+  // ni l'ecran de connexion -- un visiteur externe scannant un QR n'a ni compte ni
+  // session. Sortie immediate, aucune autre logique de cette fonction ne s'execute.
+  if (new URLSearchParams(window.location.search).get('verify')) return;
   loadDB();
   if (typeof pdfjsLib !== 'undefined') {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -8601,6 +8607,11 @@ results=JSON.parse(mx?mx[0]:raw);}catch(e){results=null;}
   window.addEventListener('DOMContentLoaded', async function() {
     const app = document.getElementById('app');
     const vp  = document.getElementById('verify-page');
+    const overlay = document.getElementById('auth-overlay');
+    // HOTFIX qr-verify-publicpage (2026-08-12) : l'ecran de connexion est visible
+    // par defaut (CSS display:flex, z-index 9999) -- il doit etre masque explicitement
+    // ici pour ne jamais recouvrir la page de verification publique.
+    if (overlay) overlay.style.display = 'none';
     if (app) app.style.display = 'none';
     if (vp)  vp.style.display  = 'block';
 
