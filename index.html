@@ -7486,6 +7486,44 @@ async function withGenerationLock(key, fn) {
   }
 }
 
+// ============================================================
+// DIAG-002B : COMPTEUR CENTRAL FIRESTORE (numerotation garantie)
+// ============================================================
+// Reserve un numero de document unique via une transaction Firestore
+// atomique (counters/{type}_{businessUnit}_{year}). Ne consomme un numero
+// qu'en cas de succes reel de la transaction cote serveur -- si la
+// transaction echoue, AUCUN numero n'est considere reserve (pas de
+// fallback local invente). Regle produit : unicite garantie, trous
+// acceptes en cas d'echec/retry, jamais de reutilisation.
+// Limite connue (documentee, non resolue a ce stade -- cf. rapport
+// DIAG-002B Phase 2) : si la transaction reussit cote serveur mais que la
+// reponse est perdue cote client, un retry cree un NOUVEAU numero (trou
+// possible) plutot que de rejouer la meme reservation -- ceci est
+// volontairement accepte, pas un bug de cette version.
+async function reserveNextDocumentNumber(type, businessUnit, year) {
+  if (!firestoreDB) throw new Error('firestore_not_ready');
+  const counterId = `${type}_${businessUnit}_${year}`;
+  const counterRef = firestoreDB.collection('counters').doc(counterId);
+  const reserved = await firestoreDB.runTransaction(async (tx) => {
+    const snap = await tx.get(counterRef);
+    let current;
+    if (!snap.exists) {
+      current = 1;
+      tx.set(counterRef, { next: 2 });
+    } else {
+      current = snap.data().next;
+      tx.update(counterRef, { next: current + 1 });
+    }
+    return current;
+  });
+  return reserved;
+}
+
+function formatDocNumber(type, businessUnit, year, seq) {
+  const prefix = type === 'facture' ? 'FAC' : 'DEV';
+  return `${prefix}-${businessUnit.toUpperCase()}-${year}-${String(seq).padStart(3,'0')}`;
+}
+
 function getNextInvoiceNumber() {
   if (!DB.invoices) DB.invoices = [];
   const year=new Date().getFullYear();
@@ -7553,7 +7591,18 @@ async function generateInvoice() {
   if(!client){toast('Nom client requis','error');return;}
   const offerVal=document.getElementById('inv-offer')?.value;
   const ht=offerVal==='custom'?parseInt(document.getElementById('inv-custom-amount')?.value)||0:parseInt(offerVal)||0;
-  const num=document.getElementById('inv-number')?.value||getNextInvoiceNumber();
+  // DIAG-002B : le champ inv-number n'est plus une source de verite (apercu
+  // local uniquement) -- le numero officiel est TOUJOURS reserve via Firestore
+  // au moment de la generation reelle, jamais lu/invente depuis le formulaire.
+  let invSeq;
+  try {
+    invSeq = await reserveNextDocumentNumber('facture', 'inovon', new Date().getFullYear());
+  } catch (e) {
+    console.error('Reservation numero facture echouee', e);
+    toast('Impossible de réserver un numéro unique. Vérifiez votre connexion puis réessayez.', 'error');
+    return;
+  }
+  const num = formatDocNumber('facture', 'inovon', new Date().getFullYear(), invSeq);
   const date=document.getElementById('inv-date')?.value||new Date().toISOString().split('T')[0];
   const period=document.getElementById('inv-period')?.value||'';
   const address=document.getElementById('inv-address')?.value||'';
@@ -7566,7 +7615,7 @@ async function generateInvoice() {
   DB.invoices.push(invoice);saveDB();renderInvoiceTable();
   const result = await attemptVerifySync(invoice, 'facture');
   renderInvoiceTable();
-  const numEl=document.getElementById('inv-number');if(numEl)numEl.value=getNextInvoiceNumber();
+  const numEl=document.getElementById('inv-number');if(numEl)numEl.value=num;
   if (result.ok) {
     toast(`Facture ${num} créée et vérifiable ✅`,'success');
   } else {
@@ -7655,14 +7704,28 @@ async function generateBatchInvoices() {
   const period=new Date().toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
   const offerMap={'Essentiel':15000,'Confort':25000,'Premium':50000};
   let created=0;
-  signed.forEach(lead=>{
+  const batchYear = new Date().getFullYear();
+  // DIAG-002B : boucle async sequentielle (pas de Promise.all) -- chaque facture
+  // du lot obtient sa PROPRE reservation Firestore atomique, une transaction a la
+  // fois, dans l'ordre. Si une reservation echoue, le lot s'arrete immediatement
+  // (pas de saut silencieux au client suivant) et le nombre deja cree est rapporte.
+  for (const lead of signed) {
     const offerKey=Object.keys(offerMap).find(k=>(lead.offer||'').includes(k));
     const ht=offerKey?offerMap[offerKey]:25000;
-    const num=getNextInvoiceNumber();
+    let batchSeq;
+    try {
+      batchSeq = await reserveNextDocumentNumber('facture', 'inovon', batchYear);
+    } catch (e) {
+      console.error('Reservation numero facture (lot) echouee pour', lead.name, e);
+      toast(`Lot interrompu après ${created} facture(s) — impossible de réserver un numéro pour ${lead.name}. Vérifiez votre connexion puis réessayez.`, 'error');
+      break;
+    }
+    const num = formatDocNumber('facture', 'inovon', batchYear, batchSeq);
     DB.invoices.push({id:Date.now()+created,number:num,client:lead.name,address:lead.zone?lead.zone+', Abidjan':'Abidjan',contact:lead.contact||'',date:new Date().toISOString().split('T')[0],period,ht,tva:0,ttc:ht,offer:`Maintenance ${offerKey||'Confort'}`,detail:`Contrat de maintenance — ${period}`,createdAt:new Date().toISOString(),status:'ÉMISE',businessUnit:'INOVON'}); // TVA-INOVON-0pct (2026-08-12)
     created++;
-  });
-  saveDB();renderInvoiceTable();toast(`${created} factures générées ✅`,'success');
+  }
+  saveDB();renderInvoiceTable();
+  if (created > 0) toast(`${created} facture(s) générée(s) ✅`,'success');
   });
 }
 
@@ -7682,6 +7745,7 @@ const INOVON_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30
 let devisLines = [];
 
 function initDevis() {
+  currentDevisReservedNumber = null; // DIAG-002B : nouvelle session devis, aucun numero reserve
   // Date par défaut
   const today = new Date().toISOString().split('T')[0];
   const el = document.getElementById('dev-date');
@@ -7715,6 +7779,37 @@ function getNextDevisNumber() {
   const year = new Date().getFullYear();
   const count = (DB.devisHistory || []).length + 1;
   return `DEV-INOVON-${year}-${String(count).padStart(3,'0')}`;
+}
+
+// DIAG-002B : numero REELLEMENT reserve (Firestore) pour le devis en cours
+// d'edition -- distinct de dev-number, qui peut aussi contenir un simple
+// apercu local non reserve (getNextDevisNumber(), affichage uniquement).
+// Reinitialise uniquement au demarrage d'une nouvelle session devis
+// (initDevis / resetDevis) -- jamais pendant l'edition en cours, pour que
+// Telecharger + Imprimer + Envoyer sur le meme brouillon reutilisent le
+// meme numero (preserve le comportement DIAG-002A).
+let currentDevisReservedNumber = null;
+
+async function ensureDevisNumberReserved() {
+  const numEl = document.getElementById('dev-number');
+  const fieldVal = numEl?.value || '';
+  if (fieldVal && fieldVal === currentDevisReservedNumber) {
+    // Deja reserve pour ce brouillon (ex: Telecharger puis Envoyer) -- reutiliser,
+    // ne jamais consommer un second numero pour le meme devis.
+    return { ok: true, number: currentDevisReservedNumber };
+  }
+  const year = new Date().getFullYear();
+  let seq;
+  try {
+    seq = await reserveNextDocumentNumber('devis', 'inovon', year);
+  } catch (e) {
+    console.error('Reservation numero devis echouee', e);
+    return { ok: false };
+  }
+  const num = formatDocNumber('devis', 'inovon', year, seq);
+  currentDevisReservedNumber = num;
+  if (numEl) numEl.value = num;
+  return { ok: true, number: num };
 }
 
 function fillDevisFromCRM(idx) {
@@ -8076,7 +8171,9 @@ function alertTelegramNouveauDevis(num, client, ttc, date) {
 async function saveAndPrintDevis() {
   return withGenerationLock('devis', async () => {
   const client = document.getElementById('dev-client')?.value || 'Client';
-  const num = document.getElementById('dev-number')?.value || getNextDevisNumber();
+  const reservation = await ensureDevisNumberReserved();
+  if (!reservation.ok) { toast('Impossible de réserver un numéro unique. Vérifiez votre connexion puis réessayez.', 'error'); return; }
+  const num = reservation.number;
   const date = document.getElementById('dev-date')?.value || new Date().toISOString().split('T')[0];
   const validity = document.getElementById('dev-validity')?.value || '30';
   const { ttc } = getDevisTotals();
@@ -8125,7 +8222,9 @@ async function saveAndPrintDevis() {
 
 async function downloadDevisPDF() {
   return withGenerationLock('devis', async () => {
-  const num = document.getElementById('dev-number')?.value || getNextDevisNumber();
+  const reservation = await ensureDevisNumberReserved();
+  if (!reservation.ok) { toast('Impossible de réserver un numéro unique. Vérifiez votre connexion puis réessayez.', 'error'); return; }
+  const num = reservation.number;
   const clientRaw = document.getElementById('dev-client')?.value || 'Client';
   const clientSafe = clientRaw.replace(/[^a-zA-Z0-9_\-]/g, '_');
   const filename = 'Devis_' + num + '_' + clientSafe + '.pdf';
@@ -8196,7 +8295,9 @@ async function downloadDevisPDF() {
 // natif de fichiers n'est pas disponible sur l'appareil.
 async function shareDevisToClient() {
   return withGenerationLock('devis', async () => {
-  const num = document.getElementById('dev-number')?.value || getNextDevisNumber();
+  const reservation = await ensureDevisNumberReserved();
+  if (!reservation.ok) { toast('Impossible de réserver un numéro unique. Vérifiez votre connexion puis réessayez.', 'error'); return; }
+  const num = reservation.number;
   const clientRaw = document.getElementById('dev-client')?.value || 'Client';
   const contact = document.getElementById('dev-contact')?.value || '';
   const { ttc } = getDevisTotals();
@@ -8269,6 +8370,7 @@ async function shareDevisToClient() {
 }
 
 function resetDevis() {
+  currentDevisReservedNumber = null; // DIAG-002B : nouvelle session devis, aucun numero reserve
   devisLines = [{ desc: '', qty: 1, unit: 0 }];
   document.getElementById('dev-client').value = '';
   document.getElementById('dev-address').value = '';

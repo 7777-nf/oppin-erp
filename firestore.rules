@@ -87,5 +87,23 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;
     }
+
+    // ------------------------------------------------------------
+    // DIAG-002B : compteurs centraux de numerotation (facture/devis).
+    // Non lie a un domaine metier de RBAC_MATRIX.md (nouveau domaine
+    // technique) -- reproduit fidelement la logique fieldsFacturation()
+    // (comptable uniquement) et fieldsDevis() (directeur/commercial/tech)
+    // deja definies plus haut, au niveau document plutot que champ.
+    // Ecriture strictement transactionnelle (runTransaction) cote client.
+    // ------------------------------------------------------------
+    match /counters/{counterId} {
+      allow read: if hasRole() && !isReadOnly();
+      allow write: if hasRole() && !isReadOnly() &&
+        (
+          isPrivileged() ||
+          (counterId.matches('facture_.*') && authRole() == 'comptable') ||
+          (counterId.matches('devis_.*') && authRole() in ['directeur','commercial','tech'])
+        );
+    }
   }
 }
