@@ -3447,17 +3447,32 @@ const RoleService = {
   }
 };
 
-function checkAuthOnLoad() {
-  try {
-    const stored = sessionStorage.getItem('charleAuth');
-    if (stored) {
-      const u = JSON.parse(stored);
-      if (u && u.role && u.email) return u;
-    }
-  } catch(e) {}
-  return null;
+.// SPRINT 1B SECURITY -- PHASE 2 : Firebase Auth devient la SEULE source
+// d'autorite. sessionStorage.charleAuth n'est plus jamais LU comme preuve
+// d'acces -- uniquement un cache d'affichage, ecrit ici et dans doLogin(),
+// jamais consulte pour decider d'un acces. Un contenu sessionStorage forge
+// sans session Firebase reelle ne peut plus produire d'acces a CHARLE.
+async function checkAuthOnLoad() {
+  await initFirebaseAuth();
+  if (!charleAuthFb) { sessionStorage.removeItem('charleAuth'); return null; }
+  const fbUser = await new Promise((resolve) => {
+    const unsub = charleAuthFb.onAuthStateChanged((u) => { unsub(); resolve(u); });
+  });
+  if (!fbUser) {
+    sessionStorage.removeItem('charleAuth');
+    return null;
+  }
+  const roleInfo = await RoleService.getRole(fbUser.uid);
+  if (!roleInfo) {
+    console.warn('Session Firebase valide mais role introuvable pour', fbUser.uid);
+    try { await charleAuthFb.signOut(); } catch(e) {}
+    sessionStorage.removeItem('charleAuth');
+    return null;
+  }
+  const user = { email: fbUser.email, role: roleInfo.role, name: roleInfo.name };
+  sessionStorage.setItem('charleAuth', JSON.stringify(user));
+  return user;
 }
-
 async function doLogin() {
   const email = (document.getElementById('auth-email')?.value || '').trim().toLowerCase();
   const pass = document.getElementById('auth-password')?.value || '';
@@ -3542,7 +3557,7 @@ window.onload = async function() {
   if (typeof pdfjsLib !== 'undefined') {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   }
-  const authUser = checkAuthOnLoad();
+  const authUser = await checkAuthOnLoad();
   if (authUser) {
     applyAuthSession(authUser);
   } else {
