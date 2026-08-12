@@ -7456,6 +7456,36 @@ Réponds en JSON: {"performance":"EXCELLENT|BON|MOYEN|CRITIQUE","verdict":"diagn
 // ENGINE #6 — INVOICE GENERATOR INOVON
 // ============================================================
 
+// ============================================================
+// DIAG-002A -- Verrou anti-double-generation (2026-08-12)
+// Mecanisme centralise et reutilisable : garantit qu'une seule execution
+// d'une meme categorie de generation (facture, devis, facture groupee) est
+// en cours a la fois. Le verrou est TOUJOURS libere via finally -- succes,
+// erreur controlee (toast) ou exception non prevue -- jamais bloque
+// definitivement. N'a aucun impact sur le comportement metier normal :
+// le corps de chaque fonction protegee est strictement inchange, seule
+// l'enveloppe (acquisition/liberation du verrou) est ajoutee.
+// Cle 'devis' partagee entre saveAndPrintDevis(), downloadDevisPDF() et
+// shareDevisToClient() : ces 3 actions operent sur le meme enregistrement
+// devis (ensureDevisSaved), elles ne doivent jamais s'executer en parallele
+// entre elles non plus (ex: Telecharger + Envoyer au client cliques presque
+// simultanement sur le meme devis).
+// ============================================================
+const generationLocks = { invoice: false, devis: false, batchInvoice: false };
+
+async function withGenerationLock(key, fn) {
+  if (generationLocks[key]) {
+    toast('Génération déjà en cours — patientez…', 'warning');
+    return;
+  }
+  generationLocks[key] = true;
+  try {
+    return await fn();
+  } finally {
+    generationLocks[key] = false;
+  }
+}
+
 function getNextInvoiceNumber() {
   if (!DB.invoices) DB.invoices = [];
   const year=new Date().getFullYear();
@@ -7517,6 +7547,7 @@ function updateInvoicePreview() {
 }
 
 async function generateInvoice() {
+  return withGenerationLock('invoice', async () => {
   if (!DB.invoices) DB.invoices = [];
   const client=document.getElementById('inv-client')?.value?.trim();
   if(!client){toast('Nom client requis','error');return;}
@@ -7541,6 +7572,7 @@ async function generateInvoice() {
   } else {
     toast(`Facture ${num} enregistrée — ${invoice.verifyMessage}`,'error');
   }
+  });
 }
 
 function renderInvoiceTable() {
@@ -7614,7 +7646,8 @@ async function printInvoice(invoiceId) {
   w.document.close();
 }
 
-function generateBatchInvoices() {
+async function generateBatchInvoices() {
+  return withGenerationLock('batchInvoice', async () => {
   if(!DB.crmLeads){toast('Aucun client CRM','warning');return;}
   const signed=DB.crmLeads.filter(l=>l.stage==='SIGNÉ');
   if(!signed.length){toast('Aucun contrat actif dans le CRM','warning');return;}
@@ -7630,6 +7663,7 @@ function generateBatchInvoices() {
     created++;
   });
   saveDB();renderInvoiceTable();toast(`${created} factures générées ✅`,'success');
+  });
 }
 
 // ============================================================
@@ -8040,6 +8074,7 @@ function alertTelegramNouveauDevis(num, client, ttc, date) {
 }
 
 async function saveAndPrintDevis() {
+  return withGenerationLock('devis', async () => {
   const client = document.getElementById('dev-client')?.value || 'Client';
   const num = document.getElementById('dev-number')?.value || getNextDevisNumber();
   const date = document.getElementById('dev-date')?.value || new Date().toISOString().split('T')[0];
@@ -8085,9 +8120,11 @@ async function saveAndPrintDevis() {
   </body></html>`);
   w.document.close();
   toast(`Devis ${d.number} sauvegardé et vérifiable ✅`, 'success');
+  });
 }
 
 async function downloadDevisPDF() {
+  return withGenerationLock('devis', async () => {
   const num = document.getElementById('dev-number')?.value || getNextDevisNumber();
   const clientRaw = document.getElementById('dev-client')?.value || 'Client';
   const clientSafe = clientRaw.replace(/[^a-zA-Z0-9_\-]/g, '_');
@@ -8150,6 +8187,7 @@ async function downloadDevisPDF() {
     } catch(e) {}
   } catch(err) { toast('Erreur PDF : ' + err.message, 'error'); }
   finally { if (btn) { btn.textContent = '⬇️ Télécharger PDF'; btn.disabled = false; } }
+  });
 }
 
 // Envoie le devis directement au client depuis le telephone (partage natif —
@@ -8157,6 +8195,7 @@ async function downloadDevisPDF() {
 // telechargement + ouverture WhatsApp avec message pre-rempli si le partage
 // natif de fichiers n'est pas disponible sur l'appareil.
 async function shareDevisToClient() {
+  return withGenerationLock('devis', async () => {
   const num = document.getElementById('dev-number')?.value || getNextDevisNumber();
   const clientRaw = document.getElementById('dev-client')?.value || 'Client';
   const contact = document.getElementById('dev-contact')?.value || '';
@@ -8226,6 +8265,7 @@ async function shareDevisToClient() {
   } finally {
     if (btn) { btn.textContent = '📲 Envoyer au client'; btn.disabled = false; }
   }
+  });
 }
 
 function resetDevis() {
