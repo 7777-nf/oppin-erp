@@ -8608,10 +8608,13 @@ results=JSON.parse(mx?mx[0]:raw);}catch(e){results=null;}
     const app = document.getElementById('app');
     const vp  = document.getElementById('verify-page');
     const overlay = document.getElementById('auth-overlay');
-    // HOTFIX qr-verify-publicpage (2026-08-12) : l'ecran de connexion est visible
-    // par defaut (CSS display:flex, z-index 9999) -- il doit etre masque explicitement
-    // ici pour ne jamais recouvrir la page de verification publique.
+    const setup = document.getElementById('setup-screen');
+    // HOTFIX qr-verify-publicpage (2026-08-12) : l'ecran de connexion ET l'ecran de
+    // configuration initiale (setup-screen) sont tous deux visibles par defaut en CSS
+    // -- ils doivent etre masques explicitement ici pour qu'un visiteur externe ne
+    // voie jamais rien d'autre que la page de verification publique.
     if (overlay) overlay.style.display = 'none';
+    if (setup) setup.style.display = 'none';
     if (app) app.style.display = 'none';
     if (vp)  vp.style.display  = 'block';
 
