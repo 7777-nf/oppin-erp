@@ -2421,7 +2421,7 @@ pre{white-space:pre-wrap;font-family:inherit}
             </table>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin-bottom:16px">
               <div style="display:flex;gap:32px;font-size:11px"><span style="color:#666">Sous-total HT:</span><span id="inv-prev-subtotal">—</span></div>
-              <div style="display:flex;gap:32px;font-size:11px"><span style="color:#666">TVA (18%):</span><span id="inv-prev-tva">—</span></div>
+              <div style="display:flex;gap:32px;font-size:11px"><span style="color:#666">TVA (0% — régime TEE):</span><span id="inv-prev-tva">—</span></div>
               <div style="display:flex;gap:32px;font-size:14px;font-weight:800;border-top:1px solid #ddd;padding-top:4px"><span>TOTAL TTC:</span><span style="color:#D4A843" id="inv-prev-ttc">—</span></div>
             </div>
             <div style="background:#f9f9f9;border-radius:4px;padding:8px;font-size:10px;color:#666">
@@ -7506,7 +7506,7 @@ function updateInvoicePreview() {
   let ht=0,desc='';
   if(offerVal==='custom'){ht=parseInt(g('inv-custom-amount'))||0;desc=detail||'Prestation sur mesure';}
   else{ht=parseInt(offerVal)||0;const offerNames={'15000':'Maintenance Essentiel','25000':'Maintenance Confort','50000':'Maintenance Premium'};desc=`${offerNames[offerVal]||'Maintenance'}${period?' · '+period:''}`;}
-  const tva=Math.round(ht*0.18),ttc=ht+tva;
+  const tva=0,ttc=ht; // TVA-INOVON-0pct (2026-08-12) : regime TEE, TVA 0% -- ancien calcul Math.round(ht*0.18) retire
   const e=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
   e('inv-prev-num',num);e('inv-prev-date',date);e('inv-prev-client',client);e('inv-prev-address',address);
   const ht2=parseInt(document.getElementById('inv-offer')?.value)||0;
@@ -7531,7 +7531,7 @@ async function generateInvoice() {
   const offerNames={'15000':'Maintenance Essentiel','25000':'Maintenance Confort','50000':'Maintenance Premium','custom':'Prestation personnalisée'};
   // DIAG-001 : verifyStatus distingue enregistrement local (toujours effectué) de
   // confirmation Firestore officielle + oppin_verify (jamais présumée).
-  const invoice={id:Date.now(),number:num,client,address,contact,date,period,ht,tva:Math.round(ht*0.18),ttc:ht+Math.round(ht*0.18),offer:offerNames[offerVal]||'Prestation',detail,createdAt:new Date().toISOString(),status:'ÉMISE',businessUnit:'INOVON',verifyStatus:'pending',verifyMessage:''};
+  const invoice={id:Date.now(),number:num,client,address,contact,date,period,ht,tva:0,ttc:ht,offer:offerNames[offerVal]||'Prestation',detail,createdAt:new Date().toISOString(),status:'ÉMISE',businessUnit:'INOVON',verifyStatus:'pending',verifyMessage:''}; // TVA-INOVON-0pct (2026-08-12)
   DB.invoices.push(invoice);saveDB();renderInvoiceTable();
   const result = await attemptVerifySync(invoice, 'facture');
   renderInvoiceTable();
@@ -7626,7 +7626,7 @@ function generateBatchInvoices() {
     const offerKey=Object.keys(offerMap).find(k=>(lead.offer||'').includes(k));
     const ht=offerKey?offerMap[offerKey]:25000;
     const num=getNextInvoiceNumber();
-    DB.invoices.push({id:Date.now()+created,number:num,client:lead.name,address:lead.zone?lead.zone+', Abidjan':'Abidjan',contact:lead.contact||'',date:new Date().toISOString().split('T')[0],period,ht,tva:Math.round(ht*0.18),ttc:ht+Math.round(ht*0.18),offer:`Maintenance ${offerKey||'Confort'}`,detail:`Contrat de maintenance — ${period}`,createdAt:new Date().toISOString(),status:'ÉMISE',businessUnit:'INOVON'});
+    DB.invoices.push({id:Date.now()+created,number:num,client:lead.name,address:lead.zone?lead.zone+', Abidjan':'Abidjan',contact:lead.contact||'',date:new Date().toISOString().split('T')[0],period,ht,tva:0,ttc:ht,offer:`Maintenance ${offerKey||'Confort'}`,detail:`Contrat de maintenance — ${period}`,createdAt:new Date().toISOString(),status:'ÉMISE',businessUnit:'INOVON'}); // TVA-INOVON-0pct (2026-08-12)
     created++;
   });
   saveDB();renderInvoiceTable();toast(`${created} factures générées ✅`,'success');
@@ -7744,7 +7744,7 @@ function removeDevisLine(i) {
 
 function getDevisTotals() {
   const ht = devisLines.reduce((sum, l) => sum + (l.qty * l.unit), 0);
-  const tva = Math.round(ht * 0.18);
+  const tva = 0; // TVA-INOVON-0pct (2026-08-12) : regime TEE, TVA 0% -- ancien calcul Math.round(ht*0.18) retire
   const ttc = ht + tva;
   return { ht, tva, ttc };
 }
@@ -7899,7 +7899,7 @@ function liveDevisPreview() {
             <span style="font-weight:600">${formatFCFA(ht)}</span>
           </div>
           <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee;font-size:12px">
-            <span style="color:#555">TVA (18%)</span>
+            <span style="color:#555">TVA (0% — régime TEE)</span>
             <span style="font-weight:600">${formatFCFA(tva)}</span>
           </div>
           <div style="display:flex;justify-content:space-between;padding:10px;background:#0d1c60;border-radius:4px;margin-top:4px">
