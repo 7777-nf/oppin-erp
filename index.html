@@ -4,6 +4,61 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+// SPRINT PERSO-UI -- bootstrap synchrone, s'execute AVANT le <style> pour
+// eviter tout flash de theme incorrect (FOUC). Duplique volontairement les
+// palettes (PALETTES_BOOT) pour zero dependance -- vitesse maximale.
+// Repli total sur dark/standard/charle-red en cas de la moindre erreur.
+(function () {
+  try {
+    var PALETTES_BOOT = {
+      'charle-red':   { accent: '#e02828', hover: '#c01e1e', soft: 'rgba(224,40,40,0.14)',  contrast: '#ffffff' },
+      'charle-blue':  { accent: '#3b82f6', hover: '#2563eb', soft: 'rgba(59,130,246,0.14)',  contrast: '#ffffff' },
+      'charle-blue-dark': { accent: '#1d3c8e', hover: '#152c69', soft: 'rgba(29,60,142,0.16)', contrast: '#ffffff' },
+      'green':  { accent: '#10b981', hover: '#0e9c6f', soft: 'rgba(16,185,129,0.14)', contrast: '#ffffff' },
+      'purple': { accent: '#8b5cf6', hover: '#7440e0', soft: 'rgba(139,92,246,0.14)', contrast: '#ffffff' },
+      'orange': { accent: '#f59e0b', hover: '#d6850a', soft: 'rgba(245,158,11,0.14)', contrast: '#14141c' }
+    };
+    var raw = localStorage.getItem('charlePreferences');
+    var prefs = null;
+    if (raw) { try { prefs = JSON.parse(raw); } catch (e) { prefs = null; } }
+    if (!prefs || typeof prefs !== 'object') prefs = {};
+
+    var theme = prefs.theme || 'system';
+    if (theme === 'system') {
+      theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+    }
+    if (theme !== 'light' && theme !== 'dark') theme = 'dark';
+
+    var contrast = prefs.contrast || 'system';
+    if (contrast === 'system') {
+      contrast = (window.matchMedia && window.matchMedia('(prefers-contrast: more)').matches) ? 'high' : 'standard';
+    }
+    if (contrast !== 'high' && contrast !== 'standard') contrast = 'standard';
+
+    var accentKey = prefs.accentColor || 'charle-red';
+    var palette;
+    if (accentKey === 'custom' && typeof prefs.accentCustomHex === 'string' && /^#[0-9a-fA-F]{6}$/.test(prefs.accentCustomHex)) {
+      palette = { accent: prefs.accentCustomHex, hover: prefs.accentCustomHex, soft: 'rgba(0,0,0,0.14)', contrast: '#ffffff' };
+    } else {
+      palette = PALETTES_BOOT[accentKey] || PALETTES_BOOT['charle-red'];
+    }
+
+    var root = document.documentElement;
+    root.setAttribute('data-theme', theme);
+    root.setAttribute('data-contrast', contrast);
+    root.style.setProperty('--charle-accent', palette.accent);
+    root.style.setProperty('--charle-accent-hover', palette.hover);
+    root.style.setProperty('--charle-accent-soft', palette.soft);
+    root.style.setProperty('--charle-accent-contrast', palette.contrast);
+  } catch (e) {
+    try {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.documentElement.setAttribute('data-contrast', 'standard');
+    } catch (e2) {}
+  }
+})();
+</script>
 <title>CHARLE — Directeur Financier IA · OPPIN</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%231d3c8e'/%3E%3Cpath d='M71,29 A30,30 0 1 0 71,71' stroke='%23f0ede6' stroke-width='17' fill='none' stroke-linecap='butt'/%3E%3Crect x='56' y='63' width='15' height='15' fill='%23e62b20'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -50,6 +105,57 @@
   --radius:    10px;
   --radius-sm: 6px;
 }
+
+/* SPRINT PERSO-UI -- theme/contraste par attribut, valeurs dark = :root
+   d'origine (aucun changement visuel par defaut). light = nouvelle palette. */
+[data-theme="dark"] {
+  --bg:  #09090d; --bg2: #0f0f16; --bg3: #16161f; --bg4: #1e1e2a;
+  --border:  rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
+  --text:  #f0f0f8; --text2: #8888a8; --text3: #55556a;
+}
+[data-theme="light"] {
+  --bg:  #f5f5f8; --bg2: #ffffff; --bg3: #eeeef2; --bg4: #e4e4ea;
+  --border:  rgba(0,0,0,0.09); --border2: rgba(0,0,0,0.15);
+  --text:  #14141c; --text2: #55556a; --text3: #8888a8;
+}
+[data-contrast="standard"] { }
+[data-contrast="high"][data-theme="dark"] {
+  --border: rgba(255,255,255,0.16); --border2: rgba(255,255,255,0.28);
+  --text2: #b0b0cc; --text3: #8888a8;
+}
+[data-contrast="high"][data-theme="light"] {
+  --border: rgba(0,0,0,0.22); --border2: rgba(0,0,0,0.36);
+  --text2: #33333f; --text3: #55556a;
+}
+:focus-visible { outline: 2px solid var(--charle-accent); outline-offset: 2px; }
+
+:root {
+  --charle-accent: #e02828;
+  --charle-accent-hover: #c01e1e;
+  --charle-accent-soft: rgba(224,40,40,0.14);
+  --charle-accent-contrast: #ffffff;
+  --charle-icon: currentColor;
+}
+.icon-themable { color: var(--charle-icon); }
+
+/* ─── PANNEAU APPARENCE (Paramètres) ─── */
+#settings-section-appearance { display: flex; flex-direction: column; gap: 14px; }
+.pui-row { display: flex; flex-direction: column; gap: 6px; }
+.pui-label-group { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pui-label-group label { font-weight: 600; font-size: 13px; }
+.pui-desc { font-size: 11px; color: var(--text2); }
+.pui-row select, .pui-row input[type="text"] {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
+  padding: 9px 10px; color: var(--text); font-size: 13px; font-family: inherit; outline: none;
+}
+.pui-row select:focus, .pui-row input:focus { border-color: var(--charle-accent); }
+.pui-swatch { display: inline-block; width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--border2); vertical-align: middle; margin-left: 8px; }
+.pui-preview { border: 1px solid var(--border); border-radius: 8px; padding: 14px; background: var(--bg3); display: flex; flex-direction: column; gap: 10px; }
+.pui-preview-primary { background: var(--charle-accent); color: var(--charle-accent-contrast); border: none; border-radius: 7px; padding: 9px 16px; font-weight: 700; font-size: 13px; text-align: center; }
+.pui-preview-secondary { border: 1px solid var(--border2); border-radius: 7px; padding: 8px 14px; font-size: 12px; text-align: center; color: var(--text2); }
+.pui-preview-nav { background: var(--charle-accent-soft); color: var(--charle-accent); border-radius: 6px; padding: 7px 10px; font-size: 12px; font-weight: 600; }
+.pui-preview-badge { display: inline-block; background: var(--charle-accent-soft); color: var(--charle-accent); border-radius: 10px; padding: 2px 9px; font-size: 11px; font-weight: 600; width: fit-content; }
+.pui-preview-input { border: 1px solid var(--charle-accent); border-radius: 6px; padding: 7px 10px; font-size: 12px; color: var(--text2); background: var(--bg2); }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;min-height:100vh;overflow:hidden}
 
@@ -61,11 +167,11 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .setup-step{margin-bottom:22px}
 .setup-step label{display:block;font-weight:600;margin-bottom:6px;font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
 .setup-step input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:11px 14px;color:var(--text);font-size:14px;font-family:inherit;outline:none;transition:border-color .2s}
-.setup-step input:focus{border-color:var(--red)}
+.setup-step input:focus{border-color:var(--charle-accent)}
 .setup-step .hint{margin-top:6px;font-size:12px;color:var(--text2)}
 .setup-step .hint a{color:var(--blue);text-decoration:none}
-.btn-primary{background:var(--red);color:#fff;border:none;border-radius:8px;padding:13px 24px;font-weight:700;font-size:14px;cursor:pointer;width:100%;font-family:inherit;transition:background .2s}
-.btn-primary:hover{background:var(--gold2)}
+.btn-primary{background:var(--charle-accent);color:var(--charle-accent-contrast);border:none;border-radius:8px;padding:13px 24px;font-weight:700;font-size:14px;cursor:pointer;width:100%;font-family:inherit;transition:background .2s}
+.btn-primary:hover{background:var(--charle-accent-hover)}
 .setup-error{color:var(--red);font-size:13px;margin-top:12px;display:none}
 
 /* ─── APP SHELL ─── */
@@ -85,7 +191,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .nav-group-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;padding:10px 8px 4px}
 .nav-item{display:flex;align-items:center;gap:9px;padding:9px 10px;font-size:13px;color:var(--text2);cursor:pointer;border-radius:7px;transition:all .15s;user-select:none;white-space:nowrap}
 .nav-item:hover{background:var(--bg3);color:var(--text)}
-.nav-item.active{background:var(--red-bg);color:var(--red2);font-weight:600}
+.nav-item.active{background:var(--charle-accent-soft);color:var(--charle-accent);font-weight:600}
 .nav-item-icon{width:18px;text-align:center;font-size:14px;flex-shrink:0}
 .nav-item-badge{margin-left:auto;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700}
 .sidebar-footer{padding:12px;border-top:1px solid var(--border);flex-shrink:0}
@@ -131,7 +237,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .ai-input-area{padding:12px;border-top:1px solid var(--border);flex-shrink:0}
 .ai-input-row{display:flex;gap:8px}
 .ai-input{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;color:var(--text);font-size:12px;font-family:inherit;resize:none;outline:none;min-height:38px;max-height:100px}
-.ai-input:focus{border-color:var(--red)}
+.ai-input:focus{border-color:var(--charle-accent)}
 .ai-send-btn{background:var(--red);border:none;border-radius:8px;color:#fff;font-size:16px;cursor:pointer;padding:0 14px;flex-shrink:0}
 .ai-send-btn:hover{background:var(--gold2)}
 .ai-quick-btns{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
@@ -199,19 +305,19 @@ tr:hover td{background:rgba(255,255,255,.02)}
 input[type=file]{display:none}
 
 /* ─── BUTTONS ─── */
-.btn-gold,.btn-red-solid{background:var(--red);color:#fff;border:none;border-radius:7px;padding:9px 18px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit}
-.btn-gold:hover,.btn-red-solid:hover{background:var(--gold2)}
+.btn-gold,.btn-red-solid{background:var(--charle-accent);color:var(--charle-accent-contrast);border:none;border-radius:7px;padding:9px 18px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit}
+.btn-gold:hover,.btn-red-solid:hover{background:var(--charle-accent-hover)}
 .btn-green{background:rgba(16,185,129,.15);border:1px solid var(--green);color:var(--green);border-radius:7px;padding:6px 13px;font-size:12px;cursor:pointer;font-weight:600;font-family:inherit}
 .btn-red{background:rgba(224,40,40,.15);border:1px solid var(--red);color:var(--red);border-radius:7px;padding:6px 13px;font-size:12px;cursor:pointer;font-weight:600;font-family:inherit}
 .btn-outline{background:transparent;border:1px solid var(--border2);color:var(--text);border-radius:7px;padding:8px 16px;font-size:13px;cursor:pointer;font-family:inherit}
-.btn-outline:hover{border-color:var(--red)}
+.btn-outline:hover{border-color:var(--charle-accent)}
 
 /* ─── FORMS ─── */
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 .form-group{margin-bottom:12px}
 .form-group label{display:block;font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:600}
 .form-group input,.form-group select,.form-group textarea{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;padding:9px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .2s}
-.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--red)}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--charle-accent)}
 .form-group select option{background:var(--bg3)}
 .form-group textarea{resize:vertical;min-height:80px}
 
@@ -228,7 +334,7 @@ input[type=file]{display:none}
 .msg.ai .msg-time{text-align:left}
 .chat-input-row{display:flex;gap:8px;padding:14px;border-top:1px solid var(--border)}
 .chat-input{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:9px 13px;color:var(--text);font-size:13px;font-family:inherit;outline:none;resize:none;min-height:40px;max-height:120px}
-.chat-input:focus{border-color:var(--red)}
+.chat-input:focus{border-color:var(--charle-accent)}
 
 /* ─── BU BADGES ─── */
 .bu-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
@@ -2870,6 +2976,7 @@ pre{white-space:pre-wrap;font-family:inherit}
       <button class="btn-primary" onclick="updateConfig()">Sauvegarder</button>
       <button class="btn-outline" onclick="closeSettings()">Annuler</button>
     </div>
+    <div id="settings-section-appearance" style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border)"></div>
   </div>
 </div>
 
@@ -3328,6 +3435,300 @@ function openGetUpdates() {
   if (token) window.open(`https://api.telegram.org/bot${token}/getUpdates`, '_blank');
   else window.open('https://api.telegram.org/', '_blank');
 }
+
+// ============================================================
+// SPRINT PERSO-UI -- Personnalisation interface (theme/contraste/accent/
+// couleur icones/langue). Panneau uniquement -- pas de traduction complete
+// de l'app. Persistance localStorage exclusivement (jamais Firestore/DB).
+// ============================================================
+const CHARLE_PREFS_KEY = 'charlePreferences';
+const CHARLE_PREFS_VERSION = 1;
+const CHARLE_DEFAULT_PREFERENCES = Object.freeze({
+  version: CHARLE_PREFS_VERSION,
+  theme: 'system',
+  contrast: 'system',
+  accentColor: 'charle-red', // jamais bleu par defaut -- decision CEO
+  accentCustomHex: null,
+  iconColor: 'auto',
+  iconCustomHex: null,
+  language: 'fr',
+});
+
+const CHARLE_ACCENT_PALETTES = {
+  'charle-red':       { accent: '#e02828', hover: '#c01e1e', soft: 'rgba(224,40,40,0.14)',  contrast: '#ffffff' },
+  'charle-blue':      { accent: '#3b82f6', hover: '#2563eb', soft: 'rgba(59,130,246,0.14)',  contrast: '#ffffff' },
+  'charle-blue-dark': { accent: '#1d3c8e', hover: '#152c69', soft: 'rgba(29,60,142,0.16)',   contrast: '#ffffff' },
+  'green':            { accent: '#10b981', hover: '#0e9c6f', soft: 'rgba(16,185,129,0.14)',  contrast: '#ffffff' },
+  'purple':           { accent: '#8b5cf6', hover: '#7440e0', soft: 'rgba(139,92,246,0.14)',  contrast: '#ffffff' },
+  'orange':           { accent: '#f59e0b', hover: '#d6850a', soft: 'rgba(245,158,11,0.14)',  contrast: '#14141c' },
+};
+const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+
+function _charleHexToRgb(hex) {
+  const m = /^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/.exec(hex);
+  if (!m) return { r: 224, g: 40, b: 40 };
+  return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+}
+function _charleShade(hex, amount) {
+  const { r, g, b } = _charleHexToRgb(hex);
+  const f = (c) => Math.max(0, Math.min(255, Math.round(c + (amount < 0 ? c * amount : (255 - c) * amount))));
+  const toHex = (c) => c.toString(16).padStart(2, '0');
+  return `#${toHex(f(r))}${toHex(f(g))}${toHex(f(b))}`;
+}
+function _charleRelativeLuminance(hex) {
+  const { r, g, b } = _charleHexToRgb(hex);
+  const lin = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+const CharlePreferences = {
+  DEFAULTS: CHARLE_DEFAULT_PREFERENCES,
+
+  getPreferences() {
+    let raw = null;
+    try { raw = localStorage.getItem(CHARLE_PREFS_KEY); } catch (e) { raw = null; }
+    if (!raw) return { ...CHARLE_DEFAULT_PREFERENCES };
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch (e) { return { ...CHARLE_DEFAULT_PREFERENCES }; }
+    return this._validatePreferences(parsed);
+  },
+
+  setPreferences(prefs) {
+    const valid = this._validatePreferences(prefs);
+    try { localStorage.setItem(CHARLE_PREFS_KEY, JSON.stringify(valid)); } catch (e) {}
+    this.applyPreferences(valid);
+    return valid;
+  },
+
+  updatePreference(key, value) {
+    const current = this.getPreferences();
+    current[key] = value;
+    return this.setPreferences(current);
+  },
+
+  resetPreferences() {
+    try { localStorage.removeItem(CHARLE_PREFS_KEY); } catch (e) {}
+    const defaults = { ...CHARLE_DEFAULT_PREFERENCES };
+    this.applyPreferences(defaults);
+    return defaults;
+  },
+
+  detectSystemTheme() {
+    try { return (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark'; }
+    catch (e) { return 'dark'; }
+  },
+  detectSystemContrast() {
+    try { return (window.matchMedia && window.matchMedia('(prefers-contrast: more)').matches) ? 'high' : 'standard'; }
+    catch (e) { return 'standard'; }
+  },
+
+  _validatePreferences(prefs) {
+    const d = CHARLE_DEFAULT_PREFERENCES;
+    if (!prefs || typeof prefs !== 'object') return { ...d };
+    const out = { ...d };
+    if (['system', 'light', 'dark'].includes(prefs.theme)) out.theme = prefs.theme;
+    if (['system', 'standard', 'high'].includes(prefs.contrast)) out.contrast = prefs.contrast;
+    if (Object.keys(CHARLE_ACCENT_PALETTES).includes(prefs.accentColor) || prefs.accentColor === 'custom') out.accentColor = prefs.accentColor;
+    if (typeof prefs.accentCustomHex === 'string' && HEX_RE.test(prefs.accentCustomHex)) out.accentCustomHex = prefs.accentCustomHex;
+    if (['auto', 'text', 'accent', 'custom'].includes(prefs.iconColor)) out.iconColor = prefs.iconColor;
+    if (typeof prefs.iconCustomHex === 'string' && HEX_RE.test(prefs.iconCustomHex)) out.iconCustomHex = prefs.iconCustomHex;
+    if (['fr', 'en'].includes(prefs.language)) out.language = prefs.language;
+    out.version = CHARLE_PREFS_VERSION;
+    return out;
+  },
+
+  _deriveAccentPalette(prefs) {
+    if (prefs.accentColor === 'custom' && prefs.accentCustomHex && HEX_RE.test(prefs.accentCustomHex)) {
+      const hex = prefs.accentCustomHex;
+      const lum = _charleRelativeLuminance(hex);
+      return {
+        accent: hex,
+        hover: _charleShade(hex, -0.15),
+        soft: `rgba(${_charleHexToRgb(hex).r},${_charleHexToRgb(hex).g},${_charleHexToRgb(hex).b},0.14)`,
+        contrast: lum > 0.5 ? '#14141c' : '#ffffff',
+      };
+    }
+    return CHARLE_ACCENT_PALETTES[prefs.accentColor] || CHARLE_ACCENT_PALETTES['charle-red'];
+  },
+
+  applyPreferences(prefs) {
+    const root = document.documentElement;
+    const theme = prefs.theme === 'system' ? this.detectSystemTheme() : prefs.theme;
+    const contrast = prefs.contrast === 'system' ? this.detectSystemContrast() : prefs.contrast;
+    root.setAttribute('data-theme', theme);
+    root.setAttribute('data-contrast', contrast);
+    const palette = this._deriveAccentPalette(prefs);
+    root.style.setProperty('--charle-accent', palette.accent);
+    root.style.setProperty('--charle-accent-hover', palette.hover);
+    root.style.setProperty('--charle-accent-soft', palette.soft);
+    root.style.setProperty('--charle-accent-contrast', palette.contrast);
+
+    let iconColor;
+    if (prefs.iconColor === 'text') iconColor = 'var(--text)';
+    else if (prefs.iconColor === 'accent') iconColor = 'var(--charle-accent)';
+    else if (prefs.iconColor === 'custom' && prefs.iconCustomHex && HEX_RE.test(prefs.iconCustomHex)) iconColor = prefs.iconCustomHex;
+    else iconColor = 'currentColor';
+    root.style.setProperty('--charle-icon', iconColor);
+  },
+};
+
+// ---- I18N (panneau Apparence uniquement -- pas de traduction globale) ----
+const I18N_FR = {
+  'settings.appearance.title': 'Apparence',
+  'settings.appearance.theme.label': 'Thème',
+  'settings.appearance.theme.desc': 'Système suit les préférences de votre appareil.',
+  'settings.appearance.contrast.label': 'Contraste',
+  'settings.appearance.contrast.desc': 'Élevé renforce les bordures et le texte secondaire.',
+  'settings.appearance.accent.label': 'Couleur d\'accentuation',
+  'settings.appearance.accent.desc': 'Boutons principaux, onglet actif, focus des champs.',
+  'settings.appearance.icon.label': 'Couleur des icônes',
+  'settings.appearance.icon.desc': 'Automatique conserve les couleurs actuelles.',
+  'settings.appearance.language.label': 'Langue',
+  'settings.appearance.language.desc': 'Français ou English (panneau uniquement).',
+  'settings.appearance.reset': 'Réinitialiser les valeurs par défaut',
+  'settings.appearance.preview.title': 'Aperçu',
+  'settings.appearance.preview.primary': 'Bouton principal',
+  'settings.appearance.preview.secondary': 'Bouton secondaire',
+  'settings.appearance.preview.nav': 'Onglet actif',
+  'settings.appearance.preview.badge': 'Badge',
+  'settings.appearance.preview.field': 'Champ (focus)',
+  'settings.appearance.opt.system': 'Système', 'settings.appearance.opt.light': 'Clair', 'settings.appearance.opt.dark': 'Sombre',
+  'settings.appearance.opt.standard': 'Standard', 'settings.appearance.opt.high': 'Élevé',
+  'settings.appearance.opt.auto': 'Automatique', 'settings.appearance.opt.text': 'Texte', 'settings.appearance.opt.accent': 'Accentuation', 'settings.appearance.opt.custom': 'Personnalisée',
+};
+const I18N_EN = {
+  'settings.appearance.title': 'Appearance',
+  'settings.appearance.theme.label': 'Theme',
+  'settings.appearance.theme.desc': 'System follows your device preferences.',
+  'settings.appearance.contrast.label': 'Contrast',
+  'settings.appearance.contrast.desc': 'High strengthens borders and secondary text.',
+  'settings.appearance.accent.label': 'Accent color',
+  'settings.appearance.accent.desc': 'Primary buttons, active tab, field focus.',
+  'settings.appearance.icon.label': 'Icon color',
+  'settings.appearance.icon.desc': 'Automatic keeps current colors.',
+  'settings.appearance.language.label': 'Language',
+  'settings.appearance.language.desc': 'Français or English (panel only).',
+  'settings.appearance.reset': 'Reset to defaults',
+  'settings.appearance.preview.title': 'Preview',
+  'settings.appearance.preview.primary': 'Primary button',
+  'settings.appearance.preview.secondary': 'Secondary button',
+  'settings.appearance.preview.nav': 'Active tab',
+  'settings.appearance.preview.badge': 'Badge',
+  'settings.appearance.preview.field': 'Field (focus)',
+  'settings.appearance.opt.system': 'System', 'settings.appearance.opt.light': 'Light', 'settings.appearance.opt.dark': 'Dark',
+  'settings.appearance.opt.standard': 'Standard', 'settings.appearance.opt.high': 'High',
+  'settings.appearance.opt.auto': 'Automatic', 'settings.appearance.opt.text': 'Text', 'settings.appearance.opt.accent': 'Accent', 'settings.appearance.opt.custom': 'Custom',
+};
+const CharleI18n = {
+  getLanguage() { return CharlePreferences.getPreferences().language || 'fr'; },
+  setLanguage(lang) { CharlePreferences.updatePreference('language', lang === 'en' ? 'en' : 'fr'); },
+  t(key) {
+    const dict = this.getLanguage() === 'en' ? I18N_EN : I18N_FR;
+    return dict[key] || I18N_FR[key] || key;
+  },
+};
+
+function confirmResetAppearance() {
+  if (!confirm('Réinitialiser les préférences d\'apparence aux valeurs par défaut ?')) return;
+  CharlePreferences.resetPreferences();
+  renderAppearanceSection();
+}
+
+function renderAppearanceSection() {
+  const container = document.getElementById('settings-section-appearance');
+  if (!container) return;
+  const prefs = CharlePreferences.getPreferences();
+  const t = (k) => CharleI18n.t(k);
+  const accentOptions = Object.keys(CHARLE_ACCENT_PALETTES).map(k =>
+    `<option value="${k}" ${prefs.accentColor === k ? 'selected' : ''}>${k}</option>`
+  ).join('') + `<option value="custom" ${prefs.accentColor === 'custom' ? 'selected' : ''}>${t('settings.appearance.opt.custom')}</option>`;
+  const currentPalette = CharlePreferences._deriveAccentPalette(prefs);
+
+  container.innerHTML = `
+    <div class="pui-label-group"><label>${t('settings.appearance.title')}</label></div>
+
+    <div class="pui-row">
+      <div class="pui-label-group"><label for="pui-theme">${t('settings.appearance.theme.label')}</label></div>
+      <div class="pui-desc">${t('settings.appearance.theme.desc')}</div>
+      <select id="pui-theme" aria-label="${t('settings.appearance.theme.label')}" onchange="CharlePreferences.updatePreference('theme', this.value); renderAppearanceSection();">
+        <option value="system" ${prefs.theme === 'system' ? 'selected' : ''}>${t('settings.appearance.opt.system')}</option>
+        <option value="light" ${prefs.theme === 'light' ? 'selected' : ''}>${t('settings.appearance.opt.light')}</option>
+        <option value="dark" ${prefs.theme === 'dark' ? 'selected' : ''}>${t('settings.appearance.opt.dark')}</option>
+      </select>
+    </div>
+
+    <div class="pui-row">
+      <div class="pui-label-group"><label for="pui-contrast">${t('settings.appearance.contrast.label')}</label></div>
+      <div class="pui-desc">${t('settings.appearance.contrast.desc')}</div>
+      <select id="pui-contrast" aria-label="${t('settings.appearance.contrast.label')}" onchange="CharlePreferences.updatePreference('contrast', this.value); renderAppearanceSection();">
+        <option value="system" ${prefs.contrast === 'system' ? 'selected' : ''}>${t('settings.appearance.opt.system')}</option>
+        <option value="standard" ${prefs.contrast === 'standard' ? 'selected' : ''}>${t('settings.appearance.opt.standard')}</option>
+        <option value="high" ${prefs.contrast === 'high' ? 'selected' : ''}>${t('settings.appearance.opt.high')}</option>
+      </select>
+    </div>
+
+    <div class="pui-row">
+      <div class="pui-label-group"><label for="pui-accent">${t('settings.appearance.accent.label')}</label><span class="pui-swatch" style="background:${currentPalette.accent}"></span></div>
+      <div class="pui-desc">${t('settings.appearance.accent.desc')}</div>
+      <select id="pui-accent" aria-label="${t('settings.appearance.accent.label')}" onchange="CharlePreferences.updatePreference('accentColor', this.value); renderAppearanceSection();">${accentOptions}</select>
+      ${prefs.accentColor === 'custom' ? `<input type="text" id="pui-accent-hex" placeholder="#RRGGBB" value="${prefs.accentCustomHex || ''}" onchange="if(/^#[0-9a-fA-F]{6}$/.test(this.value)){CharlePreferences.updatePreference('accentCustomHex', this.value);renderAppearanceSection();}">` : ''}
+    </div>
+
+    <div class="pui-row">
+      <div class="pui-label-group"><label for="pui-icon">${t('settings.appearance.icon.label')}</label></div>
+      <div class="pui-desc">${t('settings.appearance.icon.desc')}</div>
+      <select id="pui-icon" aria-label="${t('settings.appearance.icon.label')}" onchange="CharlePreferences.updatePreference('iconColor', this.value); renderAppearanceSection();">
+        <option value="auto" ${prefs.iconColor === 'auto' ? 'selected' : ''}>${t('settings.appearance.opt.auto')}</option>
+        <option value="text" ${prefs.iconColor === 'text' ? 'selected' : ''}>${t('settings.appearance.opt.text')}</option>
+        <option value="accent" ${prefs.iconColor === 'accent' ? 'selected' : ''}>${t('settings.appearance.opt.accent')}</option>
+        <option value="custom" ${prefs.iconColor === 'custom' ? 'selected' : ''}>${t('settings.appearance.opt.custom')}</option>
+      </select>
+      ${prefs.iconColor === 'custom' ? `<input type="text" id="pui-icon-hex" placeholder="#RRGGBB" value="${prefs.iconCustomHex || ''}" onchange="if(/^#[0-9a-fA-F]{6}$/.test(this.value)){CharlePreferences.updatePreference('iconCustomHex', this.value);renderAppearanceSection();}">` : ''}
+    </div>
+
+    <div class="pui-row">
+      <div class="pui-label-group"><label for="pui-lang">${t('settings.appearance.language.label')}</label></div>
+      <div class="pui-desc">${t('settings.appearance.language.desc')}</div>
+      <select id="pui-lang" aria-label="${t('settings.appearance.language.label')}" onchange="CharleI18n.setLanguage(this.value); renderAppearanceSection();">
+        <option value="fr" ${prefs.language === 'fr' ? 'selected' : ''}>Français</option>
+        <option value="en" ${prefs.language === 'en' ? 'selected' : ''}>English</option>
+      </select>
+    </div>
+
+    <div class="pui-preview" role="img" aria-label="${t('settings.appearance.preview.title')}">
+      <div style="font-size:11px;color:var(--text2);font-weight:600">${t('settings.appearance.preview.title')}</div>
+      <div class="pui-preview-primary">${t('settings.appearance.preview.primary')}</div>
+      <div class="pui-preview-secondary">${t('settings.appearance.preview.secondary')}</div>
+      <div class="pui-preview-nav">${t('settings.appearance.preview.nav')}</div>
+      <div class="pui-preview-badge">${t('settings.appearance.preview.badge')}</div>
+      <div class="pui-preview-input">${t('settings.appearance.preview.field')}</div>
+    </div>
+
+    <button class="btn-outline" onclick="confirmResetAppearance()">${t('settings.appearance.reset')}</button>
+  `;
+}
+
+let __charlePrefsListenersRegistered = false;
+(function charlePerfsInit() {
+  const prefs = CharlePreferences.getPreferences();
+  CharlePreferences.applyPreferences(prefs);
+  if (!__charlePrefsListenersRegistered) {
+    __charlePrefsListenersRegistered = true;
+    try {
+      const mqTheme = window.matchMedia('(prefers-color-scheme: light)');
+      const onThemeChange = () => { const p = CharlePreferences.getPreferences(); if (p.theme === 'system') CharlePreferences.applyPreferences(p); };
+      if (mqTheme.addEventListener) mqTheme.addEventListener('change', onThemeChange); else if (mqTheme.addListener) mqTheme.addListener(onThemeChange);
+      const mqContrast = window.matchMedia('(prefers-contrast: more)');
+      const onContrastChange = () => { const p = CharlePreferences.getPreferences(); if (p.contrast === 'system') CharlePreferences.applyPreferences(p); };
+      if (mqContrast.addEventListener) mqContrast.addEventListener('change', onContrastChange); else if (mqContrast.addListener) mqContrast.addListener(onContrastChange);
+    } catch (e) {}
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', renderAppearanceSection);
+  } else {
+    renderAppearanceSection();
+  }
+})();
 
 function openSettings() {
   document.getElementById('s-gemini').value = DB.config.gemini || '';
