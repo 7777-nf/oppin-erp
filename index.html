@@ -7940,6 +7940,19 @@ function formatDocNumber(type, businessUnit, year, seq) {
   return `${prefix}-${businessUnit.toUpperCase()}-${year}-${String(seq).padStart(3,'0')}`;
 }
 
+// SPRINT 1E -- ANTI-DOUBLON (defense en profondeur, couche 2). Fonction PURE,
+// reutilisable pour DB.invoices et DB.devisHistory : ne lit/n'ecrit rien,
+// ne connait ni Firestore ni le DOM. Retourne true si `number` est libre
+// dans `list`, false s'il existe deja. Le numero reserve via
+// reserveNextDocumentNumber() (couche 1, transaction Firestore) n'est
+// JAMAIS reutilise en cas de collision -- voir generateInvoice()/
+// generateBatchInvoices() ci-dessous, qui appellent cette fonction juste
+// avant toute ecriture locale.
+function isDocumentNumberAvailable(number, list) {
+  const exists = (list || []).some(x => x && x.number === number);
+  return !exists;
+}
+
 function getNextInvoiceNumber() {
   if (!DB.invoices) DB.invoices = [];
   const year=new Date().getFullYear();
@@ -8019,6 +8032,18 @@ async function generateInvoice() {
     return;
   }
   const num = formatDocNumber('facture', 'inovon', new Date().getFullYear(), invSeq);
+  // SPRINT 1E -- ANTI-DOUBLON couche 2 : le numero vient d'etre reserve via
+  // Firestore (couche 1, ci-dessus, transaction atomique -- inchangee). On
+  // verifie ICI, avant toute ecriture locale, qu'il n'existe pas deja dans
+  // DB.invoices. Collision -> blocage immediat : AUCUN push, AUCUN saveDB()
+  // pour cette tentative, AUCUNE modification de la facture existante. Le
+  // numero reserve n'est JAMAIS reutilise -- le compteur Firestore reste
+  // avance, la prochaine reservation consommera le numero suivant.
+  if (!isDocumentNumberAvailable(num, DB.invoices)) {
+    console.error('[ANTI-DOUBLON] Facture bloquee -- numero deja present dans DB.invoices:', num);
+    toast(`NUMÉRO DE FACTURE DÉJÀ UTILISÉ — FACTURE NON ENREGISTRÉE (${num})`, 'error');
+    return;
+  }
   const date=document.getElementById('inv-date')?.value||new Date().toISOString().split('T')[0];
   const period=document.getElementById('inv-period')?.value||'';
   const address=document.getElementById('inv-address')?.value||'';
@@ -8120,6 +8145,8 @@ async function generateBatchInvoices() {
   const period=new Date().toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
   const offerMap={'Essentiel':15000,'Confort':25000,'Premium':50000};
   let created=0;
+  let skipped=0;
+  const batchCollisions=[]; // SPRINT 1E -- {client, number, date, raison, contexte:'batch'}
   const batchYear = new Date().getFullYear();
   // DIAG-002B : boucle async sequentielle (pas de Promise.all) -- chaque facture
   // du lot obtient sa PROPRE reservation Firestore atomique, une transaction a la
@@ -8137,11 +8164,25 @@ async function generateBatchInvoices() {
       break;
     }
     const num = formatDocNumber('facture', 'inovon', batchYear, batchSeq);
+    // SPRINT 1E -- meme defense en profondeur (couche 2) qu'en creation
+    // unitaire. IMPORTANT : une collision N'INTERROMPT PAS le lot -- le
+    // client concerne est ignore, l'anomalie est enregistree (client,
+    // numero, date, raison, contexte "batch"), le traitement continue avec
+    // le client suivant. Le numero reserve n'est jamais reutilise.
+    if (!isDocumentNumberAvailable(num, DB.invoices)) {
+      console.error('[ANTI-DOUBLON] Facture (lot) ignoree -- numero deja present dans DB.invoices:', num, '-- client:', lead.name);
+      batchCollisions.push({ client: lead.name, number: num, date: new Date().toISOString(), raison: 'NUMÉRO DE FACTURE DÉJÀ UTILISÉ — FACTURE NON ENREGISTRÉE', contexte: 'batch' });
+      skipped++;
+      continue;
+    }
     DB.invoices.push({id:Date.now()+created,number:num,client:lead.name,address:lead.zone?lead.zone+', Abidjan':'Abidjan',contact:lead.contact||'',date:new Date().toISOString().split('T')[0],period,ht,tva:0,ttc:ht,offer:`Maintenance ${offerKey||'Confort'}`,detail:`Contrat de maintenance — ${period}`,createdAt:new Date().toISOString(),status:'ÉMISE',businessUnit:'INOVON'}); // TVA-INOVON-0pct (2026-08-12)
     created++;
   }
   saveDB();renderInvoiceTable();
-  if (created > 0) toast(`${created} facture(s) générée(s) ✅`,'success');
+  if (batchCollisions.length) console.error('[ANTI-DOUBLON] Lot factures -- collisions detectees:', batchCollisions);
+  if (created > 0 || skipped > 0) {
+    toast(`Factures créées : ${created} — Factures ignorées : ${skipped} — Collisions de numéros : ${batchCollisions.length}`, batchCollisions.length > 0 ? 'warning' : 'success');
+  }
   });
 }
 
