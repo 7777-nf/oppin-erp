@@ -2465,26 +2465,36 @@ pre{white-space:pre-wrap;font-family:inherit}
           </div>
 
           <div class="form-group">
-            <label>Offre / Prestation</label>
-            <select id="inv-offer">
-              <option value="15000">Maintenance Essentiel — 15 000 FCFA/mois</option>
-              <option value="25000" selected>Maintenance Confort — 25 000 FCFA/mois</option>
-              <option value="50000">Maintenance Premium — 50 000 FCFA/mois</option>
-              <option value="custom">Montant personnalisé</option>
+            <label>Type de facture</label>
+            <select id="inv-type">
+              <option value="materiel">Matériel</option>
+              <option value="installation">Installation</option>
+              <option value="prestation" selected>Prestation</option>
+              <option value="maintenance">Maintenance</option>
+              <option value="intervention">Intervention</option>
+              <option value="etude">Étude / Audit</option>
+              <option value="projet">Projet</option>
+              <option value="personnalise">Personnalisée</option>
+              <option value="autre">Autre</option>
             </select>
-          </div>
-          <div class="form-group" id="inv-custom-group" style="display:none">
-            <label>Montant HT (FCFA)</label>
-            <input type="number" id="inv-custom-amount" placeholder="0">
           </div>
 
           <div class="form-group">
-            <label>Période de facturation</label>
+            <label>Période de facturation (facultatif)</label>
             <input type="text" id="inv-period" placeholder="Juin 2026">
           </div>
+
+          <div class="card-title" style="margin-top:12px;font-size:13px">🧾 Lignes de facturation</div>
+          <div id="inv-lines"></div>
+          <button class="btn-outline" type="button" style="width:100%;margin-top:6px" onclick="addInvoiceLine()">+ Ajouter une ligne</button>
+
+          <div class="form-group" style="margin-top:12px">
+            <label>Conditions de paiement</label>
+            <input type="text" id="inv-conditions" value="Paiement par virement bancaire ou mobile money (Wave / Orange Money) sous 30 jours." oninput="liveInvoicePreview()">
+          </div>
           <div class="form-group">
-            <label>Notes / détail prestation</label>
-            <textarea id="inv-detail" rows="2" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px;color:var(--text);font-size:12px;resize:vertical" placeholder="Ex: Contrat de maintenance vidéosurveillance — 4 caméras + alarme"></textarea>
+            <label>Notes (optionnel)</label>
+            <textarea id="inv-notes" rows="2" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px;color:var(--text);font-size:12px;resize:vertical" placeholder="Notes complémentaires (optionnel)" oninput="liveInvoicePreview()"></textarea>
           </div>
         </div>
 
@@ -2520,9 +2530,15 @@ pre{white-space:pre-wrap;font-family:inherit}
               <div style="font-size:10px;color:#666" id="inv-prev-address">—</div>
             </div>
             <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
-              <thead><tr style="background:#f5f5f5"><th style="padding:6px 8px;text-align:left;font-size:10px">Désignation</th><th style="padding:6px 8px;text-align:right;font-size:10px">Montant HT</th></tr></thead>
-              <tbody>
-                <tr><td style="padding:8px;font-size:11px" id="inv-prev-desc">—</td><td style="padding:8px;text-align:right;font-weight:700" id="inv-prev-ht">—</td></tr>
+              <thead><tr style="background:#f5f5f5">
+                <th style="padding:6px 8px;text-align:left;font-size:10px">Désignation</th>
+                <th style="padding:6px 8px;text-align:left;font-size:10px">Description</th>
+                <th style="padding:6px 8px;text-align:center;font-size:10px">Qté</th>
+                <th style="padding:6px 8px;text-align:right;font-size:10px">PU HT</th>
+                <th style="padding:6px 8px;text-align:right;font-size:10px">Montant HT</th>
+              </tr></thead>
+              <tbody id="inv-prev-lines-body">
+                <tr><td colspan="5" style="padding:8px;font-size:11px;color:#999">—</td></tr>
               </tbody>
             </table>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin-bottom:16px">
@@ -2531,7 +2547,8 @@ pre{white-space:pre-wrap;font-family:inherit}
               <div style="display:flex;gap:32px;font-size:14px;font-weight:800;border-top:1px solid #ddd;padding-top:4px"><span>TOTAL TTC:</span><span style="color:#D4A843" id="inv-prev-ttc">—</span></div>
             </div>
             <div style="background:#f9f9f9;border-radius:4px;padding:8px;font-size:10px;color:#666">
-              Paiement par virement bancaire ou mobile money (Wave / Orange Money) sous 30 jours.<br>
+              <span id="inv-prev-conditions">Paiement par virement bancaire ou mobile money (Wave / Orange Money) sous 30 jours.</span><br>
+              <span id="inv-prev-notes"></span>
               OPPIN · INOVON · albanngoran85@gmail.com
             </div>
           </div>
@@ -2545,8 +2562,8 @@ pre{white-space:pre-wrap;font-family:inherit}
           <div class="card-title">📁 Factures générées <span id="inv-count" style="font-size:12px;color:var(--text2)">(0)</span></div>
         </div>
         <table>
-          <thead><tr><th>N°</th><th>Client</th><th>Période</th><th>Montant TTC</th><th>Date</th><th>Action</th></tr></thead>
-          <tbody id="inv-table"><tr><td colspan="6" class="text-muted" style="text-align:center;padding:16px">Aucune facture générée</td></tr></tbody>
+          <thead><tr><th>N°</th><th>Client</th><th>Désignation</th><th>Type</th><th>Période</th><th>Montant TTC</th><th>Date</th><th>Statut</th><th>Action</th></tr></thead>
+          <tbody id="inv-table"><tr><td colspan="9" class="text-muted" style="text-align:center;padding:16px">Aucune facture générée</td></tr></tbody>
         </table>
       </div>
     </div><!-- /pane-invoices -->
@@ -7972,9 +7989,11 @@ function populateInvoiceCRM() {
   const periodEl=document.getElementById('inv-period');
   if(periodEl&&!periodEl.value) periodEl.value=new Date().toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
   // Wire live preview
-  ['inv-client','inv-address','inv-contact','inv-number','inv-date','inv-offer','inv-period','inv-detail','inv-custom-amount'].forEach(id=>{
+  ['inv-client','inv-address','inv-contact','inv-number','inv-date','inv-type','inv-period','inv-conditions','inv-notes'].forEach(id=>{
     const el=document.getElementById(id); if(el&&!el._previewWired){el.addEventListener('input',updateInvoicePreview);el.addEventListener('change',updateInvoicePreview);el._previewWired=true;}
   });
+  if (!invoiceLines.length) invoiceLines.push({ designation:'', description:'', quantity:1, unitPriceHT:0 });
+  renderInvoiceLines();
   updateInvoicePreview();
 }
 
@@ -7985,10 +8004,118 @@ function fillInvoiceFromCRM(id) {
   e('inv-client',lead.name||'');
   e('inv-address',lead.zone?lead.zone+', Abidjan':'Abidjan');
   e('inv-contact',lead.contact||'');
-  const offerMap={'Essentiel':'15000','Confort':'25000','Premium':'50000'};
-  const offerEl=document.getElementById('inv-offer');
-  if(offerEl&&lead.offer){const k=Object.keys(offerMap).find(k=>lead.offer.includes(k));if(k)offerEl.value=offerMap[k];}
+  const offerMap={'Essentiel':{amount:15000,label:'Maintenance Essentiel'},'Confort':{amount:25000,label:'Maintenance Confort'},'Premium':{amount:50000,label:'Maintenance Premium'}};
+  const typeEl=document.getElementById('inv-type'); if(typeEl) typeEl.value='maintenance';
+  if(lead.offer){
+    const k=Object.keys(offerMap).find(k=>lead.offer.includes(k));
+    if(k){ invoiceLines=[{ designation: offerMap[k].label, description:'', quantity:1, unitPriceHT: offerMap[k].amount }]; renderInvoiceLines(); }
+  }
   updateInvoicePreview();
+}
+
+// ============================================================
+// FACTURE UNIVERSELLE -- lignes dynamiques (pattern identique a devisLines,
+// etendu avec designation/description separes). En memoire uniquement tant
+// que la facture n'est pas generee -- reserveNextDocumentNumber(),
+// isDocumentNumberAvailable(), DB.invoices, saveDB() : tous inchanges.
+// ============================================================
+let invoiceLines = [];
+
+function addInvoiceLine() {
+  invoiceLines.push({ designation: '', description: '', quantity: 1, unitPriceHT: 0 });
+  renderInvoiceLines();
+  liveInvoicePreview();
+}
+
+function removeInvoiceLine(i) {
+  if (invoiceLines.length <= 1) { toast('Une facture doit contenir au moins une ligne.', 'warning'); return; }
+  invoiceLines.splice(i, 1);
+  renderInvoiceLines();
+  liveInvoicePreview();
+}
+
+function renderInvoiceLines() {
+  const container = document.getElementById('inv-lines');
+  if (!container) return;
+  if (!invoiceLines.length) invoiceLines.push({ designation: '', description: '', quantity: 1, unitPriceHT: 0 });
+  container.innerHTML = invoiceLines.map((line, i) => `
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:8px">
+      <div class="form-group" style="margin-bottom:6px">
+        <label style="font-size:10px">Désignation</label>
+        <input type="text" value="${line.designation||''}" oninput="invoiceLines[${i}].designation=this.value;liveInvoicePreview()" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:6px;color:var(--text);font-size:12px" placeholder="Ex: Caméra Hikvision">
+      </div>
+      <div class="form-group" style="margin-bottom:6px">
+        <label style="font-size:10px">Description (optionnel)</label>
+        <input type="text" value="${line.description||''}" oninput="invoiceLines[${i}].description=this.value;liveInvoicePreview()" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:6px;color:var(--text);font-size:12px" placeholder="Précisions complémentaires">
+      </div>
+      <div style="display:grid;grid-template-columns:70px 1fr 110px auto;gap:8px;align-items:end">
+        <div class="form-group" style="margin:0">
+          <label style="font-size:10px">Qté</label>
+          <input type="number" value="${line.quantity!=null?line.quantity:1}" min="0" oninput="invoiceLines[${i}].quantity=+this.value;renderInvoiceLines();liveInvoicePreview()" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:6px;color:var(--text);font-size:12px">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label style="font-size:10px">Prix unitaire HT (FCFA)</label>
+          <input type="number" value="${line.unitPriceHT!=null?line.unitPriceHT:0}" oninput="invoiceLines[${i}].unitPriceHT=+this.value;renderInvoiceLines();liveInvoicePreview()" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:6px;color:var(--text);font-size:12px">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label style="font-size:10px">Montant HT</label>
+          <div style="padding:6px;font-weight:700;font-size:12px;color:var(--text)">${formatAmount((Number(line.quantity)||0)*(Number(line.unitPriceHT)||0))}</div>
+        </div>
+        <button type="button" onclick="removeInvoiceLine(${i})" style="background:var(--red);color:white;border:none;border-radius:4px;padding:6px 10px;cursor:pointer;font-size:11px;height:30px">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+// Somme des lignes -- amountHT jamais saisi manuellement, toujours quantity*unitPriceHT.
+function getInvoiceTotals(lines) {
+  const source = lines || invoiceLines;
+  const totalHT = source.reduce((sum, l) => sum + (Number(l.quantity)||0) * (Number(l.unitPriceHT)||0), 0);
+  const tauxTVA = 0; // TVA-INOVON-0pct (2026-08-12) : regime TEE, inchange -- champ prevu pour evolution future
+  const montantTVA = Math.round(totalHT * tauxTVA);
+  const totalTTC = totalHT + montantTVA;
+  return { totalHT, tauxTVA, montantTVA, totalTTC };
+}
+
+// FONCTION PURE DE COMPATIBILITE DESCENDANTE -- ne lit/n'ecrit que l'objet
+// invoice passe en parametre, aucun acces DB/Firestore. Utilisee par le
+// tableau Factures, le PDF/apercu, et le rechargement pour impression, pour
+// que les factures ancien format (offer/detail/ht, ex. 003 a 009, generees
+// par generateInvoice() avant cette refonte ou par generateBatchInvoices()
+// qui continue de produire ce format) s'affichent correctement sans jamais
+// etre reecrites.
+function getEffectiveInvoiceLines(invoice) {
+  if (!invoice) return [];
+  if (Array.isArray(invoice.lignes) && invoice.lignes.length > 0) return invoice.lignes;
+  const offerNamesParHT = {15000:'Maintenance Essentiel',25000:'Maintenance Confort',50000:'Maintenance Premium'};
+  const designation = invoice.offer || offerNamesParHT[invoice.ht] || 'Prestation';
+  const ht = Number(invoice.ht) || 0;
+  return [{ designation, description: invoice.detail || '', quantity: 1, unitPriceHT: ht, amountHT: ht }];
+}
+
+// Rendu de l'apercu (table lignes + totaux + conditions/notes) a partir de
+// invoiceLines -- appele a chaque saisie de ligne (pattern identique a
+// liveDevisPreview()). Ne touche ni DB ni Firestore.
+function liveInvoicePreview() {
+  const tbody = document.getElementById('inv-prev-lines-body');
+  if (!tbody) return;
+  const lines = invoiceLines.length ? invoiceLines : [{ designation:'', description:'', quantity:0, unitPriceHT:0 }];
+  tbody.innerHTML = lines.map(l => `
+    <tr>
+      <td style="padding:8px;font-size:11px">${l.designation||'—'}</td>
+      <td style="padding:8px;font-size:11px;color:#666">${l.description||''}</td>
+      <td style="padding:8px;font-size:11px;text-align:center">${l.quantity!=null?l.quantity:0}</td>
+      <td style="padding:8px;font-size:11px;text-align:right">${formatAmount(Number(l.unitPriceHT)||0)}</td>
+      <td style="padding:8px;font-size:11px;text-align:right;font-weight:700">${formatAmount((Number(l.quantity)||0)*(Number(l.unitPriceHT)||0))}</td>
+    </tr>`).join('');
+  const totals = getInvoiceTotals(lines);
+  const e=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  e('inv-prev-subtotal', formatAmount(totals.totalHT));
+  e('inv-prev-tva', formatAmount(totals.montantTVA));
+  e('inv-prev-ttc', formatAmount(totals.totalTTC));
+  const condVal=document.getElementById('inv-conditions')?.value||'';
+  const condPrev=document.getElementById('inv-prev-conditions'); if(condPrev) condPrev.textContent=condVal;
+  const notesVal=document.getElementById('inv-notes')?.value||'';
+  const notesPrev=document.getElementById('inv-prev-notes'); if(notesPrev) notesPrev.textContent=notesVal?('Notes : '+notesVal):'';
 }
 
 function updateInvoicePreview() {
@@ -7997,20 +8124,11 @@ function updateInvoicePreview() {
   const address=g('inv-address')||'—';
   const num=g('inv-number')||getNextInvoiceNumber();
   const date=g('inv-date')||new Date().toLocaleDateString('fr-FR');
-  const period=g('inv-period');
-  const detail=g('inv-detail');
-  const offerVal=document.getElementById('inv-offer')?.value;
-  let ht=0,desc='';
-  if(offerVal==='custom'){ht=parseInt(g('inv-custom-amount'))||0;desc=detail||'Prestation sur mesure';}
-  else{ht=parseInt(offerVal)||0;const offerNames={'15000':'Maintenance Essentiel','25000':'Maintenance Confort','50000':'Maintenance Premium'};desc=`${offerNames[offerVal]||'Maintenance'}${period?' · '+period:''}`;}
-  const tva=0,ttc=ht; // TVA-INOVON-0pct (2026-08-12) : regime TEE, TVA 0% -- ancien calcul Math.round(ht*0.18) retire
   const e=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
   e('inv-prev-num',num);e('inv-prev-date',date);e('inv-prev-client',client);e('inv-prev-address',address);
-  const ht2=parseInt(document.getElementById('inv-offer')?.value)||0;
-  injectQR('inv-prev-qr', num, client, ht2, date, 'facture');
-  e('inv-prev-desc',detail||desc);e('inv-prev-ht',formatAmount(ht));e('inv-prev-subtotal',formatAmount(ht));
-  e('inv-prev-tva',formatAmount(tva));e('inv-prev-ttc',formatAmount(ttc));
-  const cg=document.getElementById('inv-custom-group');if(cg)cg.style.display=offerVal==='custom'?'block':'none';
+  const totals=getInvoiceTotals();
+  injectQR('inv-prev-qr', num, client, totals.totalHT, date, 'facture');
+  liveInvoicePreview();
 }
 
 async function generateInvoice() {
@@ -8018,8 +8136,10 @@ async function generateInvoice() {
   if (!DB.invoices) DB.invoices = [];
   const client=document.getElementById('inv-client')?.value?.trim();
   if(!client){toast('Nom client requis','error');return;}
-  const offerVal=document.getElementById('inv-offer')?.value;
-  const ht=offerVal==='custom'?parseInt(document.getElementById('inv-custom-amount')?.value)||0:parseInt(offerVal)||0;
+  if (!invoiceLines.length || invoiceLines.every(l => !l.designation || !l.designation.trim())) {
+    toast('Au moins une ligne avec une désignation est requise', 'error');
+    return;
+  }
   // DIAG-002B : le champ inv-number n'est plus une source de verite (apercu
   // local uniquement) -- le numero officiel est TOUJOURS reserve via Firestore
   // au moment de la generation reelle, jamais lu/invente depuis le formulaire.
@@ -8048,11 +8168,25 @@ async function generateInvoice() {
   const period=document.getElementById('inv-period')?.value||'';
   const address=document.getElementById('inv-address')?.value||'';
   const contact=document.getElementById('inv-contact')?.value||'';
-  const detail=document.getElementById('inv-detail')?.value||'';
-  const offerNames={'15000':'Maintenance Essentiel','25000':'Maintenance Confort','50000':'Maintenance Premium','custom':'Prestation personnalisée'};
+  const type=document.getElementById('inv-type')?.value||'prestation';
+  const conditionsPaiement=document.getElementById('inv-conditions')?.value||'';
+  const notes=document.getElementById('inv-notes')?.value||'';
+  // SPRINT -- FACTURE UNIVERSELLE : lignes[] devient la source de verite du
+  // contenu facture (designation/description/quantity/unitPriceHT/amountHT).
+  // ht/tva/ttc/offer/detail sont conserves en parallele (compat descendante,
+  // relus tels quels par du code non migre) mais ne sont plus la source de
+  // saisie : ils sont derives des lignes, jamais l'inverse.
+  const lignes = invoiceLines.map(l => ({
+    designation: (l.designation || '').trim(),
+    description: (l.description || '').trim(),
+    quantity: Number(l.quantity) || 0,
+    unitPriceHT: Number(l.unitPriceHT) || 0,
+    amountHT: (Number(l.quantity) || 0) * (Number(l.unitPriceHT) || 0),
+  }));
+  const totals = getInvoiceTotals(lignes);
   // DIAG-001 : verifyStatus distingue enregistrement local (toujours effectué) de
   // confirmation Firestore officielle + oppin_verify (jamais présumée).
-  const invoice={id:Date.now(),number:num,client,address,contact,date,period,ht,tva:0,ttc:ht,offer:offerNames[offerVal]||'Prestation',detail,createdAt:new Date().toISOString(),status:'ÉMISE',businessUnit:'INOVON',verifyStatus:'pending',verifyMessage:''}; // TVA-INOVON-0pct (2026-08-12)
+  const invoice={id:Date.now(),number:num,client,address,contact,date,period,type,lignes,totalHT:totals.totalHT,tauxTVA:totals.tauxTVA,montantTVA:totals.montantTVA,totalTTC:totals.totalTTC,conditionsPaiement,notes,ht:totals.totalHT,tva:totals.montantTVA,ttc:totals.totalTTC,offer:lignes[0]?.designation||'Prestation',detail:lignes[0]?.description||'',createdAt:new Date().toISOString(),status:'ÉMISE',businessUnit:'INOVON',verifyStatus:'pending',verifyMessage:''}; // TVA-INOVON-0pct (2026-08-12)
   DB.invoices.push(invoice);saveDB();renderInvoiceTable();
   const result = await attemptVerifySync(invoice, 'facture');
   renderInvoiceTable();
@@ -8065,38 +8199,58 @@ async function generateInvoice() {
   });
 }
 
+const INVOICE_TYPE_LABELS = {materiel:'Matériel',installation:'Installation',prestation:'Prestation',maintenance:'Maintenance',intervention:'Intervention',etude:'Étude/Audit',projet:'Projet',personnalise:'Personnalisée',autre:'Autre'};
+
 function renderInvoiceTable() {
   if (!DB.invoices) DB.invoices = [];
   const tbody=document.getElementById('inv-table'); if(!tbody) return;
   const el=document.getElementById('inv-count');if(el)el.textContent=`(${DB.invoices.length})`;
-  if(!DB.invoices.length){tbody.innerHTML='<tr><td colspan="6" class="text-muted" style="text-align:center;padding:16px">Aucune facture générée</td></tr>';return;}
+  if(!DB.invoices.length){tbody.innerHTML='<tr><td colspan="9" class="text-muted" style="text-align:center;padding:16px">Aucune facture générée</td></tr>';return;}
   const invVerifyBadge = (r) => r.verifyStatus === 'synced'
     ? '<div style="color:var(--green);font-size:9px;margin-top:2px">✅ Vérifiable</div>'
     : r.verifyStatus === 'failed'
       ? '<div style="color:var(--red);font-size:9px;margin-top:2px">⚠ Sync échouée</div>'
       : '<div style="color:var(--text2);font-size:9px;margin-top:2px">⏳ Non synchronisé</div>';
-  tbody.innerHTML=[...DB.invoices].sort((a,b)=>b.createdAt>a.createdAt?1:-1).map(inv=>`
+  tbody.innerHTML=[...DB.invoices].sort((a,b)=>b.createdAt>a.createdAt?1:-1).map(inv=>{
+    const lignes = getEffectiveInvoiceLines(inv);
+    const designationCell = lignes.length > 1
+      ? `${lignes[0].designation||'—'} <span style="color:var(--text2)">(+ ${lignes.length-1} ligne${lignes.length-1>1?'s':''})</span>`
+      : (lignes[0]?.designation || '—');
+    const typeLabel = INVOICE_TYPE_LABELS[inv.type] || '—';
+    const montant = inv.totalTTC != null ? inv.totalTTC : inv.ttc;
+    return `
     <tr>
       <td style="font-weight:600;color:var(--gold)">${inv.number}</td>
       <td>${inv.client}</td>
+      <td style="color:var(--text2)">${designationCell}</td>
+      <td style="color:var(--text2)">${typeLabel}</td>
       <td style="color:var(--text2)">${inv.period||'—'}</td>
-      <td style="color:var(--green);font-weight:600">${formatAmount(inv.ttc)}</td>
+      <td style="color:var(--green);font-weight:600">${formatAmount(montant)}</td>
       <td style="color:var(--text2)">${inv.date}</td>
+      <td style="color:var(--text2)">${inv.status||'—'}</td>
       <td>
         <button class="btn-sm" onclick="printInvoice(${inv.id})" title="Imprimer (synchronise si nécessaire)">🖨️</button>
         <button class="btn-sm" style="color:var(--red);margin-left:4px" onclick="DB.invoices=DB.invoices.filter(x=>x.id!==${inv.id});saveDB();renderInvoiceTable()">✕</button>
         ${invVerifyBadge(inv)}
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 function loadInvoiceForPrint(id) {
   const inv=(DB.invoices||[]).find(i=>i.id===id); if(!inv) return;
   const e=(elId,v)=>{const el=document.getElementById(elId);if(el)el.value=v;};
   e('inv-client',inv.client||'');e('inv-address',inv.address||'');e('inv-contact',inv.contact||'');
-  e('inv-number',inv.number||'');e('inv-date',inv.date||'');e('inv-period',inv.period||'');e('inv-detail',inv.detail||'');
-  const offerEl=document.getElementById('inv-offer');
-  if(offerEl){if(['15000','25000','50000'].includes(String(inv.ht)))offerEl.value=String(inv.ht);else{offerEl.value='custom';const ca=document.getElementById('inv-custom-amount');if(ca)ca.value=inv.ht;}}
+  e('inv-number',inv.number||'');e('inv-date',inv.date||'');e('inv-period',inv.period||'');
+  const typeEl=document.getElementById('inv-type'); if(typeEl) typeEl.value=inv.type||'prestation';
+  const condEl=document.getElementById('inv-conditions'); if(condEl && inv.conditionsPaiement) condEl.value=inv.conditionsPaiement;
+  const notesEl=document.getElementById('inv-notes'); if(notesEl) notesEl.value=inv.notes||'';
+  // SPRINT -- FACTURE UNIVERSELLE : repeuple les lignes du formulaire via la
+  // fonction pure de compatibilite -- fonctionne identiquement pour une
+  // facture ancien format (offer/detail/ht) ou nouveau format (lignes[]).
+  invoiceLines = getEffectiveInvoiceLines(inv).map(l => ({ designation: l.designation||'', description: l.description||'', quantity: l.quantity!=null?l.quantity:1, unitPriceHT: l.unitPriceHT!=null?l.unitPriceHT:0 }));
+  if (!invoiceLines.length) invoiceLines = [{ designation:'', description:'', quantity:1, unitPriceHT:0 }];
+  renderInvoiceLines();
   updateInvoicePreview();showTab('invoices');
 }
 
