@@ -265,6 +265,10 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 @media(max-width:1200px){.grid-4{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:900px){.grid-3{grid-template-columns:1fr 1fr}}
 @media(max-width:640px){.grid-4,.grid-3,.grid-2{grid-template-columns:1fr}}
+.inv-line-fields{display:grid;grid-template-columns:70px 1fr 150px auto;gap:8px;align-items:end}
+.inv-line-fields input[type=number]{min-width:0}
+@media(max-width:560px){.inv-line-fields{grid-template-columns:1fr}}
+
 
 /* ─── KPI CARDS ─── */
 .kpi{padding:18px}
@@ -8034,6 +8038,32 @@ function removeInvoiceLine(i) {
   liveInvoicePreview();
 }
 
+function updateInvoiceLineField(i, field, rawValue) {
+  // Met a jour la donnee sans jamais reconstruire #inv-lines (evite la perte
+  // de focus qui tronquait la saisie du Prix unitaire HT -- voir commentaire
+  // au-dessus de renderInvoiceLines()).
+  const num = rawValue === '' ? 0 : Number(rawValue);
+  if (!invoiceLines[i]) return;
+  invoiceLines[i][field] = isNaN(num) ? 0 : num;
+  // Normalise l'affichage (supprime un zero initial superflu, ex: "045000"
+  // -> "45000") sans jamais reconstruire le DOM -- on modifie uniquement la
+  // valeur du MEME noeud <input>, ce qui ne fait jamais perdre le focus
+  // (contrairement a renderInvoiceLines()). Le calcul utilisait deja la
+  // valeur numerique correcte via Number(rawValue) -- seul l'affichage texte
+  // pouvait conserver le zero tape.
+  const fieldInputId = field === 'quantity' ? 'inv-line-qty-' + i : (field === 'unitPriceHT' ? 'inv-line-price-' + i : null);
+  if (fieldInputId) {
+    const fieldEl = document.getElementById(fieldInputId);
+    if (fieldEl && fieldEl.value !== String(num)) fieldEl.value = String(num);
+  }
+  const amountEl = document.getElementById('inv-line-amount-' + i);
+  if (amountEl) {
+    const amt = (Number(invoiceLines[i].quantity) || 0) * (Number(invoiceLines[i].unitPriceHT) || 0);
+    amountEl.textContent = formatAmount(amt);
+  }
+  liveInvoicePreview();
+}
+
 function renderInvoiceLines() {
   const container = document.getElementById('inv-lines');
   if (!container) return;
@@ -8048,18 +8078,18 @@ function renderInvoiceLines() {
         <label style="font-size:10px">Description (optionnel)</label>
         <input type="text" value="${line.description||''}" oninput="invoiceLines[${i}].description=this.value;liveInvoicePreview()" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:6px;color:var(--text);font-size:12px" placeholder="Précisions complémentaires">
       </div>
-      <div style="display:grid;grid-template-columns:70px 1fr 110px auto;gap:8px;align-items:end">
+      <div class="inv-line-fields">
         <div class="form-group" style="margin:0">
           <label style="font-size:10px">Qté</label>
-          <input type="number" value="${line.quantity!=null?line.quantity:1}" min="0" oninput="invoiceLines[${i}].quantity=+this.value;renderInvoiceLines();liveInvoicePreview()" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:6px;color:var(--text);font-size:12px">
+          <input type="number" id="inv-line-qty-${i}" value="${line.quantity!=null?line.quantity:1}" min="0" oninput="updateInvoiceLineField(${i},'quantity',this.value)" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:6px;color:var(--text);font-size:12px">
         </div>
         <div class="form-group" style="margin:0">
           <label style="font-size:10px">Prix unitaire HT (FCFA)</label>
-          <input type="number" value="${line.unitPriceHT!=null?line.unitPriceHT:0}" oninput="invoiceLines[${i}].unitPriceHT=+this.value;renderInvoiceLines();liveInvoicePreview()" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:6px;color:var(--text);font-size:12px">
+          <input type="number" id="inv-line-price-${i}" value="${line.unitPriceHT!=null?line.unitPriceHT:0}" oninput="updateInvoiceLineField(${i},'unitPriceHT',this.value)" style="width:100%;min-width:130px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:6px;color:var(--text);font-size:13px">
         </div>
         <div class="form-group" style="margin:0">
           <label style="font-size:10px">Montant HT</label>
-          <div style="padding:6px;font-weight:700;font-size:12px;color:var(--text)">${formatAmount((Number(line.quantity)||0)*(Number(line.unitPriceHT)||0))}</div>
+          <div id="inv-line-amount-${i}" style="padding:6px;font-weight:700;font-size:12px;color:var(--text);white-space:nowrap">${formatAmount((Number(line.quantity)||0)*(Number(line.unitPriceHT)||0))}</div>
         </div>
         <button type="button" onclick="removeInvoiceLine(${i})" style="background:var(--red);color:white;border:none;border-radius:4px;padding:6px 10px;cursor:pointer;font-size:11px;height:30px">✕</button>
       </div>
