@@ -5001,6 +5001,95 @@ function parseCSV(text) {
   toast(`CSV chargé: ${csvData.length} lignes détectées`, 'success');
 }
 
+
+// ============================================================
+// PHASE TRESORERIE 1.1 -- FOUNDATION LEDGER (Etape D, sandbox)
+// Couche additive : validation/normalisation/ID/anti-doublon pour
+// DB.transactions. N'affecte aucune autre collection (invoices,
+// receivables, expenses, counters, crmLeads restent inchanges).
+// ============================================================
+const LedgerService = (function () {
+  const VALID_TYPES = ['credit', 'debit'];
+  const VALID_BUS = ['INOVON', 'TROPRAPIDE', 'BATE', 'HOLDING'];
+  const VALID_SOURCES = ['MANUAL', 'CSV_IMPORT'];
+
+  function isValidDateString(d) {
+    if (!d && d !== 0) return false;
+    const parsed = new Date(d);
+    return !isNaN(parsed.getTime());
+  }
+
+  function validateTransaction(tx) {
+    const errors = [];
+    if (!tx || typeof tx !== 'object') return { valid: false, errors: ['TRANSACTION_NOT_OBJECT'] };
+    if (!isValidDateString(tx.date)) errors.push('INVALID_DATE');
+    if (!VALID_TYPES.includes(tx.type)) errors.push('INVALID_TYPE');
+    if (typeof tx.amount !== 'number' || !isFinite(tx.amount) || !(tx.amount > 0)) errors.push('INVALID_AMOUNT');
+    if (!VALID_BUS.includes(tx.bu)) errors.push('INVALID_BU');
+    if (!VALID_SOURCES.includes(tx.source)) errors.push('INVALID_SOURCE');
+    return { valid: errors.length === 0, errors };
+  }
+
+  function normalizeTransaction(raw) {
+    return {
+      id: raw.id, date: raw.date, type: raw.type, amount: raw.amount, bu: raw.bu,
+      category: raw.category || 'Autre', description: raw.description || '', source: raw.source,
+      invoiceId: raw.invoiceId || null, receivableId: raw.receivableId || null,
+      expenseId: raw.expenseId || null, paymentId: raw.paymentId || null, reference: raw.reference || null
+    };
+  }
+
+  function createIdGenerator() {
+    let lastMs = 0, counter = 0;
+    return function generateTransactionId() {
+      const now = Date.now();
+      if (now === lastMs) { counter += 1; } else { lastMs = now; counter = 0; }
+      return `${now}-${String(counter).padStart(4, '0')}`;
+    };
+  }
+
+  function calculateCash(transactions, bu) {
+    const list = bu ? transactions.filter(t => t.bu === bu) : transactions;
+    const credit = list.filter(t => t.type === 'credit').reduce((s, t) => s + t.amount, 0);
+    const debit = list.filter(t => t.type === 'debit').reduce((s, t) => s + t.amount, 0);
+    return { balance: credit - debit, credit, debit, count: list.length };
+  }
+
+  return { VALID_TYPES, VALID_BUS, VALID_SOURCES, validateTransaction, normalizeTransaction, createIdGenerator, calculateCash };
+})();
+
+const __ledgerIdGen = LedgerService.createIdGenerator();
+let __csvImportKeys = new Set();
+
+// Point d'entree unique pour toute nouvelle transaction (MANUAL ou CSV_IMPORT).
+// Ne remplace PAS DB.transactions ni saveDB() -- s'appuie dessus, comme avant.
+function createLedgerTransaction(input, opts) {
+  opts = opts || {};
+  const candidate = LedgerService.normalizeTransaction(Object.assign({}, input, { id: input.id || __ledgerIdGen() }));
+  const validation = LedgerService.validateTransaction(candidate);
+  if (!validation.valid) return { ok: false, reason: 'VALIDATION_FAILED', errors: validation.errors };
+
+  if (candidate.source === 'MANUAL' && !opts.confirmDuplicate) {
+    const dup = DB.transactions.find(t =>
+      t.source === 'MANUAL' && t.bu === candidate.bu && t.amount === candidate.amount &&
+      t.description === candidate.description && t.date === candidate.date
+    );
+    if (dup) {
+      return { ok: false, reason: 'DUPLICATE_WARNING', duplicateOf: dup.id,
+        message: `Transaction similaire deja enregistree (${dup.id} -- ${dup.date}, ${dup.bu}, ${dup.amount}).` };
+    }
+  }
+
+  if (candidate.source === 'CSV_IMPORT') {
+    const key = `${candidate.date}|${candidate.amount}|${(candidate.description || '').trim().toLowerCase()}|${candidate.bu}`;
+    if (__csvImportKeys.has(key)) return { ok: false, reason: 'CSV_DUPLICATE', message: 'Ligne CSV deja importee.' };
+    __csvImportKeys.add(key);
+  }
+
+  DB.transactions.push(candidate);
+  return { ok: true, transaction: candidate };
+}
+
 function confirmImport() {
   const bu = document.getElementById('import-bu').value;
   const dateCol = document.getElementById('col-date').value;
@@ -5008,6 +5097,7 @@ function confirmImport() {
   const amtCol = document.getElementById('col-amount').value;
 
   let imported = 0;
+  let duplicates = 0;
   const CATEGORIES = [
     { keywords: ['maintenance', 'entretien', 'contrat'], category: 'Maintenance' },
     { keywords: ['vente', 'installation', 'facture', 'client'], category: 'Ventes' },
@@ -5058,13 +5148,15 @@ function confirmImport() {
       if (!isNaN(d)) dateStr = d.toISOString().split('T')[0];
     } catch(e) {}
 
-    DB.transactions.push({
-      id: Date.now() + Math.random(),
+    // PHASE 1.1 -- ETAPE D : ecriture desormais centralisee via createLedgerTransaction()
+    const res = createLedgerTransaction({
       bu, date: dateStr, description: desc,
       amount, type,
-      category: categorize(desc)
+      category: categorize(desc),
+      source: 'CSV_IMPORT'
     });
-    imported++;
+    if (res.ok) imported++;
+    else if (res.reason === 'CSV_DUPLICATE') duplicates++;
   });
 
   saveDB();
@@ -5072,8 +5164,8 @@ function confirmImport() {
   csvData = [];
   document.getElementById('csv-upload-label').textContent = 'Cliquez ou glissez un CSV ici';
 
-  toast(`${imported} transactions importées pour ${bu}`, 'success');
-  addAlert('INFO', `Import CSV — ${bu}`, `${imported} transactions importées`, 'info');
+  toast(`${imported} transactions importées pour ${bu}` + (duplicates ? ` (${duplicates} doublon(s) ignoré(s))` : ''), 'success');
+  addAlert('INFO', `Import CSV — ${bu}`, `${imported} transactions importées` + (duplicates ? `, ${duplicates} doublon(s) détecté(s)` : ''), 'info');
   renderAll();
   showTab('cash');
 }
@@ -5088,7 +5180,21 @@ function addManualTransaction() {
 
   if (!desc || !amount || !date) { toast('Remplissez tous les champs', 'warning'); return; }
 
-  DB.transactions.push({ id: Date.now(), bu, date, description: desc, amount: Math.abs(amount), type, category });
+  // PHASE 1.1 -- ETAPE D : ecriture desormais centralisee via createLedgerTransaction()
+  // (Foundation Ledger). Comportement visible inchange sauf anti-doublon MANUAL
+  // (nouveau, non bloquant, confirmation explicite).
+  let res = createLedgerTransaction({ date, type, amount: Math.abs(amount), bu, description: desc, category, source: 'MANUAL' });
+  if (!res.ok) {
+    if (res.reason === 'DUPLICATE_WARNING') {
+      if (confirm(res.message + '\n\nConfirmer quand meme ?')) {
+        res = createLedgerTransaction({ date, type, amount: Math.abs(amount), bu, description: desc, category, source: 'MANUAL' }, { confirmDuplicate: true });
+      } else {
+        toast('Transaction annulee', 'info');
+        return;
+      }
+    }
+    if (!res.ok) { toast('Transaction invalide : ' + (res.errors || [res.reason]).join(', '), 'error'); return; }
+  }
   saveDB();
   toast('Transaction ajoutée', 'success');
   document.getElementById('manual-desc').value = '';
